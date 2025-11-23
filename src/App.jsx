@@ -8,7 +8,6 @@ import HeaderPage from "./Components/Header/header";
 const { Header, Sider, Content } = Layout;
 function App() {
   const [collapsed, setCollapsed] = useState(false);
-
   return (
     <>
       <Layout>
