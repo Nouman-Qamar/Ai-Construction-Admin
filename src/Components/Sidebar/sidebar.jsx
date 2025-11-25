@@ -1,29 +1,21 @@
 import { Flex, Menu } from "antd";
+import { Link } from "react-router-dom";
 
 import { 
   MdDashboard,
-  MdOutlineManageAccounts,
-  MdOutlinePayments,
-  MdOutlineSettings
+  MdOutlineManageAccounts
 } from "react-icons/md";
 
 import { 
-  AiOutlineProject,
-  AiOutlineNotification
+  AiOutlineProject
 } from "react-icons/ai";
 
-import { 
-  BiAnalyse 
-} from "react-icons/bi";
 
 import { 
   RiUserSettingsLine 
 } from "react-icons/ri";
 
-import { 
-  IoMdConstruct, 
-  IoMdChatbubbles 
-} from "react-icons/io";
+
 
 function Sidebar() {
   return (
@@ -47,7 +39,8 @@ function Sidebar() {
           {
             key: '1',
             icon: <MdDashboard />,
-            label: 'Dashboard',
+            label: <Link to="/">Dashboard</Link>,
+             
           },
 
           {
@@ -76,7 +69,7 @@ function Sidebar() {
           {
             key: '8',
             icon: <RiUserSettingsLine />,
-            label: 'Admin Profile',
+             label: <Link to="/admin/profile">Admin Profile</Link>,
           },
         ]}
       />
