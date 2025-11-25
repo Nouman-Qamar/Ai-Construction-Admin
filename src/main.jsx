@@ -6,19 +6,28 @@ import { ConfigProvider } from 'antd'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ConfigProvider
-    theme={{
-      token: {
-        // Seed Token
-        colorPrimary: '#1a2c4c',
-        borderRadius: 2,
-
-        // Alias Token
-        colorBgContainer: '#f6ffed',
+  <ConfigProvider
+  theme={{
+    token: {
+      colorPrimary: '#f97316',
+    },
+    components: {
+      Layout: {
+        siderBg: '#fff7ed',
       },
-    }}
-  >
-    <App />
-    </ConfigProvider>
-  </StrictMode>,
+      Menu: {
+        colorItemBg: '#fff7ed',
+        colorItemBgHover: '#fed7aa',
+        colorItemBgSelected: '#f97316',
+        colorItemText: '#7c2d12',
+        colorItemTextSelected: '#fff',
+      },
+    },
+  }}
+>
+  <App />
+</ConfigProvider>
+
+</StrictMode>
+
 )
