@@ -1,0 +1,78 @@
+.profile-container {
+  padding: 40px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.profile-header h1 {
+  font-size: 28px;
+  color: #1f1f1f;
+  margin-bottom: 4px;
+}
+
+.profile-header p {
+  color: #8c8c8c;
+  margin-bottom: 24px;
+}
+
+.profile-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-card {
+  border-radius: 10px;
+}
+
+.profile-picture-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.profile-camera-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #1677ff;
+  color: white;
+}
+
+.text-title {
+  font-size: 16px;
+  color: #1f1f1f;
+  margin-bottom: 4px;
+}
+
+.text-sub {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 12px;
+}
+
+.two-columns {
+  display: flex;
+  gap: 16px;
+}
+
+.align-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.danger-card {
+  border: 1px solid #ffccc7;
+}
+
+.danger-zone-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

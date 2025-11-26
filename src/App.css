@@ -1,20 +1,22 @@
-.header{
- height: 70px;
-  padding: 0 24px;
-  background: #fff;
 
+.header{
+  height: 70px;
+  padding: 0 24px;
+  background: #FFF9F2;  
   display: flex;
   align-items: center;
   justify-content: space-between;   
   width: 100%;                      
   box-sizing: border-box; 
- 
+  border-bottom: 1px solid #FFE4C7; 
 }
+
 
 .content{
   margin: 24px 16px;
   padding: 20px;
 }
+
 
 .sider{
   height: 100vh;
@@ -22,8 +24,9 @@
   top: 0;
   left: 0;
   bottom: 0;
-
+  background: #FFF9F2;    
 }
+
 
 .trigger{
   font-size: 16px;
@@ -34,30 +37,46 @@
   left: 10px;
 }
 
+
 .logo{
-  color: #1a2c4c;
+  color: #5C2A0A;         
   margin: 30px 0;
   font-size: 1.5rem;
 }
+
 
 .menu-bar{
   display: flex;
   flex-direction: column;
   gap: 7.5px;
   font-weight: 500;
+  background: #FFF9F2 !important;
 }
+
 
 .ant-menu-item-selected{
-  /* background-color: #1a2c4c !important; */
-  color: #fff;
+  background-color: #F97316 !important; 
+  color: #fff !important;               
+  border-radius: 6px;
 }
 
+/* MENU ITEM HOVER */
+.ant-menu-item:hover{
+  background-color: #FFE4C7 !important;  
+  color: #5C2A0A !important;           
+}
+
+
+.ant-menu-item{
+  color: #5C2A0A !important;
+}
+
+
 .header-icon{
-  background: #d2e3c8;
+  background: #FFE4C7;
   padding: 8px;
   border-radius: 4px;
   font-size: 15px;
   cursor: pointer;
-  /* color: #1a2c4c !important; */
+  color: #5C2A0A;
 }
-
