@@ -1,36 +1,28 @@
 import { Flex, Menu } from "antd";
+import { Link } from "react-router-dom";
 
 import { 
   MdDashboard,
-  MdOutlineManageAccounts,
-  MdOutlinePayments,
-  MdOutlineSettings
+  MdOutlineManageAccounts
 } from "react-icons/md";
 
 import { 
-  AiOutlineProject,
-  AiOutlineNotification
+  AiOutlineProject
 } from "react-icons/ai";
 
-import { 
-  BiAnalyse 
-} from "react-icons/bi";
 
 import { 
   RiUserSettingsLine 
 } from "react-icons/ri";
 
-import { 
-  IoMdConstruct, 
-  IoMdChatbubbles 
-} from "react-icons/io";
+
 
 function Sidebar() {
   return (
     <>
       <Flex align="center" justify="center">
         <div className="logo">
-            <MdDashboard size={28}/>
+          <MdDashboard size={28}/>
         </div>
       </Flex>
 
@@ -39,16 +31,18 @@ function Sidebar() {
         mode="inline"
         defaultSelectedKeys={['1']}
         className="menu-bar"
+        style={{
+          background: "#FFF9F2",   
+        }}
         items={[
 
-          
           {
             key: '1',
             icon: <MdDashboard />,
-            label: 'Dashboard',
+            label: <Link to="/">Dashboard</Link>,
+             
           },
 
-          
           {
             key: '2',
             icon: <MdOutlineManageAccounts />,
@@ -58,95 +52,28 @@ function Sidebar() {
               { key: '2-2', label: 'Clients (Owners)' },
               { key: '2-3', label: 'Contractors' },
               { key: '2-4', label: 'Laborers' },
-              { key: '2-5', label: 'Verification Requests' },
-              { key: '2-6', label: 'Suspended Accounts' }
+              { key: '2-5', label: <Link to ="/verification"> Verification Requests</Link> },
+              { key: '2-6', label: <Link to="suspend" >Suspended Accounts</Link> }
             ]
           },
 
-          
           {
             key: '3',
             icon: <AiOutlineProject />,
             label: 'Project Management',
             children: [
               { key: '3-1', label: 'All Projects' },
-              { key: '3-2', label: 'Pending Approval' },
-              { key: '3-3', label: 'Active Projects' },
-              { key: '3-4', label: 'Completed Projects' },
-              { key: '3-5', label: 'Cancelled Projects' },
-              { key: '3-6', label: 'Bids Overview' }
             ]
           },
 
-         
-
-          {
-            key: '4',
-            icon: <MdOutlinePayments />,
-            label: 'Payments & Finance',
-            children: [
-              { key: '4-1', label: 'All Transactions' },
-              { key: '4-2', label: 'Pending Payments' },
-              { key: '4-3', label: 'Withdrawals / Refund Requests' },
-              { key: '4-4', label: 'Subscriptions' },
-              { key: '4-5', label: 'Revenue Reports' },
-            ]
-          },
-
-
-         
-          {
-            key: '5',
-            icon: <IoMdConstruct />,
-            label: 'AI Cost Engine',
-            children: [
-              { key: '5-1', label: 'Material Prices' },
-              { key: '5-2', label: 'API Integrations' },
-              { key: '5-3', label: 'Estimate Logs' },
-              { key: '5-4', label: 'Override Estimates' },
-            ]
-          },
-
-         
-          {
-            key: '6',
-            icon: <AiOutlineNotification />,
-            label: 'Announcements & Policies',
-            children: [
-              { key: '6-1', label: 'Announcements' },
-              { key: '6-2', label: 'Policies & Terms' },
-              { key: '6-3', label: 'Pricing Updates' },
-            ]
-          },
-
-          
-          {
-            key: '7',
-            icon: <MdOutlineSettings />,
-            label: 'System Settings',
-            children: [
-              { key: '7-1', label: 'Admin Roles' },
-              { key: '7-2', label: 'Security Logs' },
-              { key: '7-3', label: 'Backups' },
-              { key: '7-4', label: 'Configurations' },
-            ]
-          },
-
-         
           {
             key: '8',
             icon: <RiUserSettingsLine />,
-            label: 'Admin Profile',
-            children: [
-              { key: '8-1', label: 'Profile' },
-              { key: '8-2', label: 'Settings' },
-              { key: '8-3', label: 'Logout' },
-            ]
+             label: <Link to="/admin/profile">Admin Profile</Link>,
           },
         ]}
       />
     </>
   );
 }
-
 export default Sidebar;
