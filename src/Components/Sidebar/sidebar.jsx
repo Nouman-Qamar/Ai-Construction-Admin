@@ -50,8 +50,8 @@ function Sidebar() {
             children: [
               { key: '2-1', label: 'All Users' },
               { key: '2-2', label: 'Clients (Owners)' },
-              { key: '2-3', label: 'Contractors' },
-              { key: '2-4', label: 'Laborers' },
+              { key: '2-3', label: <Link to="/contractors">Contractors</Link> },
+              { key: '2-4', label: <Link to="/laborers">Laborers</Link> },
               { key: '2-5', label: 'Verification Requests' },
               { key: '2-6', label: 'Suspended Accounts' }
             ]
@@ -60,9 +60,9 @@ function Sidebar() {
           {
             key: '3',
             icon: <AiOutlineProject />,
-            label: 'Project Management',
+            label: <Link to="/projects">Project Management</Link>,
             children: [
-              { key: '3-1', label: 'All Projects' },
+              { key: '3-1', label: <Link to="/projects">All Projects</Link> },
             ]
           },
 
