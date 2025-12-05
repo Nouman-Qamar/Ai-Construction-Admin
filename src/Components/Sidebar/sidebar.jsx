@@ -1,4 +1,5 @@
 import { Flex, Menu } from "antd";
+import { Link } from "react-router-dom";
 
 import { 
   MdDashboard,
@@ -54,8 +55,8 @@ function Sidebar() {
             icon: <MdOutlineManageAccounts />,
             label: 'User Management',
             children: [
-              { key: '2-1', label: 'All Users' },
-              { key: '2-2', label: 'Clients (Owners)' },
+              { key: '2-1', label: <Link to="/users">All Users</Link> },
+              { key: '2-2', label: <Link to="/clients">Clients (Owners)</Link> },
               { key: '2-3', label: 'Contractors' },
               { key: '2-4', label: 'Laborers' },
               { key: '2-5', label: 'Verification Requests' },
