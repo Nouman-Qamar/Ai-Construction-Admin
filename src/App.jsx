@@ -7,6 +7,9 @@ import HeaderPage from "./Components/Header/header";
 
 import Dashboard from "./Components/Landing-Page/landing";
 import Profile from "./Components/Pages/Profile/Profile";
+import AllProjects from "./Components/Pages/Project/AllProjects";
+
+
 
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -50,7 +53,10 @@ function App() {
 
             {/* Redirect unknown routes to Dashboard */}
             <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/all-projects" element={<AllProjects />} />
+             
           </Routes>
+          
         </Content>
       </Layout>
     </Layout>

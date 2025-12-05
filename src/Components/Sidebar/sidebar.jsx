@@ -1,79 +1,58 @@
 import { Flex, Menu } from "antd";
-import { Link } from "react-router-dom";
-
-import { 
-  MdDashboard,
-  MdOutlineManageAccounts
-} from "react-icons/md";
-
-import { 
-  AiOutlineProject
-} from "react-icons/ai";
-
-
-import { 
-  RiUserSettingsLine 
-} from "react-icons/ri";
-
-
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { MdDashboard, MdOutlineManageAccounts } from "react-icons/md";
+import { AiOutlineProject } from "react-icons/ai";
+import { RiUserSettingsLine } from "react-icons/ri";
 
 function Sidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   return (
     <>
       <Flex align="center" justify="center">
-        <div className="logo">
-          <MdDashboard size={28}/>
-        </div>
+        <div className="logo">Logo</div>
       </Flex>
 
-      <Menu 
+      <Menu
         theme="light"
         mode="inline"
-        defaultSelectedKeys={['1']}
+        selectedKeys={[location.pathname]}
+        defaultOpenKeys={["3"]}
         className="menu-bar"
-        style={{
-          background: "#FFF9F2",   
-        }}
+        style={{ background: "#FFF9F2" }}
+
+        // 🔥 This is important → click will navigate
+        onClick={(item) => navigate(item.key)}
+
         items={[
-
           {
-            key: '1',
+            key: "/", // route
             icon: <MdDashboard />,
-            label: <Link to="/">Dashboard</Link>,
-             
+            label: "Dashboard",
           },
 
           {
-            key: '2',
-            icon: <MdOutlineManageAccounts />,
-            label: 'User Management',
-            children: [
-              { key: '2-1', label: 'All Users' },
-              { key: '2-2', label: 'Clients (Owners)' },
-              { key: '2-3', label: 'Contractors' },
-              { key: '2-4', label: 'Laborers' },
-              { key: '2-5', label: 'Verification Requests' },
-              { key: '2-6', label: 'Suspended Accounts' }
-            ]
-          },
-
-          {
-            key: '3',
+            key: "3",
             icon: <AiOutlineProject />,
-            label: 'Project Management',
+            label: "Project Management",
             children: [
-              { key: '3-1', label: 'All Projects' },
-            ]
+              {
+                key: "/all-projects", // FIXED route
+                label: "All Projects",
+              },
+            ],
           },
 
           {
-            key: '8',
+            key: "/admin/profile",
             icon: <RiUserSettingsLine />,
-             label: <Link to="/admin/profile">Admin Profile</Link>,
+            label: "Admin Profile",
           },
         ]}
       />
     </>
   );
 }
+
 export default Sidebar;
