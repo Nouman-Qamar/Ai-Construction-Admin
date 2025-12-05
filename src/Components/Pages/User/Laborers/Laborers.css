@@ -355,3 +355,16 @@
     font-size: 13px;
   }
 }
+
+.laborers-col-contractor,
+.laborers-col-specialty,
+.laborers-col-rating,
+.laborers-col-projects,
+.laborers-col-status,
+.laborers-col-actions {
+  font-size: 14px;
+  font-weight: 700;
+  color: #5C2A0A;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
