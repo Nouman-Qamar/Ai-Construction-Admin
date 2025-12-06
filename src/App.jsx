@@ -23,6 +23,7 @@ const { Header, Sider, Content } = Layout;
 
 function App() {
   const [collapsed, setCollapsed] = useState(false);
+
   return (
     <Layout>
       <Sider

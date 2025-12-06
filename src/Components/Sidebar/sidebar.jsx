@@ -62,22 +62,32 @@ function Sidebar() {
             label: "User Management",
             children: [
               { key: "2-1", label: <Link to="/users">All Users</Link> },
+
               {
                 key: "2-2",
                 label: <Link to="/all-clients">All Clients</Link>,
               },
+
               {
                 key: "2-3",
                 label: <Link to="/contractors">Contractors</Link>,
               },
+
               { key: "2-4", label: <Link to="/laborers">Laborers</Link> },
+
               {
                 key: "2-5",
                 label: (
                   <Link to="/verification-requests">Verification Requests</Link>
                 ),
               },
-              { key: "2-6", label: <Link to="/suspended-accounts">Suspended Accounts</Link> },
+
+              {
+                key: "2-6",
+                label: (
+                  <Link to="/suspended-accounts">Suspended Accounts</Link>
+                ),
+              },
             ],
           },
 
@@ -87,7 +97,6 @@ function Sidebar() {
             label: "Project Management",
             children: [
               { key: "3-1", label: <Link to="/projects">All Projects</Link> },
-              
             ],
           },
 
