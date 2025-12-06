@@ -1,148 +1,86 @@
 import { Flex, Menu } from "antd";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
-import { 
-  MdDashboard,
-  MdOutlineManageAccounts,
-  MdOutlinePayments,
-  MdOutlineSettings
-} from "react-icons/md";
-
-import { 
-  AiOutlineProject,
-  AiOutlineNotification
-} from "react-icons/ai";
-
-import { 
-  BiAnalyse 
-} from "react-icons/bi";
-
-import { 
-  RiUserSettingsLine 
-} from "react-icons/ri";
-
-import { 
-  IoMdConstruct, 
-  IoMdChatbubbles 
-} from "react-icons/io";
+import { MdDashboard, MdOutlineManageAccounts } from "react-icons/md";
+import { AiOutlineProject } from "react-icons/ai";
+import { RiUserSettingsLine } from "react-icons/ri";
 
 function Sidebar() {
+  const location = useLocation();
+  const path = location.pathname;
+
+  // Auto select item based on current route
+  const selectedKey = (() => {
+    if (path === "/" || path === "/dashboard") return "1";
+
+    if (path === "/clients") return "2-2";
+    if (path === "/contractors") return "2-3";
+    if (path === "/laborers") return "2-4";
+    if (path === "/verification") return "2-5";
+
+    if (path === "/projects") return "3-1";
+
+    if (path === "/admin/profile") return "8";
+
+    return "1";
+  })();
+
+  // Auto open parent submenu
+  const openKeys = (() => {
+    if (selectedKey.startsWith("2")) return ["2"];
+    if (selectedKey.startsWith("3")) return ["3"];
+    return [];
+  })();
+
   return (
     <>
       <Flex align="center" justify="center">
         <div className="logo">
-            <MdDashboard size={28}/>
+          <MdDashboard size={28} />
         </div>
       </Flex>
 
-      <Menu 
+      <Menu
         theme="light"
         mode="inline"
-        defaultSelectedKeys={['1']}
+        selectedKeys={[selectedKey]}
+        defaultOpenKeys={openKeys}
         className="menu-bar"
+        style={{ background: "#FFF9F2" }}
         items={[
-
-          
           {
-            key: '1',
+            key: "1",
             icon: <MdDashboard />,
-            label: 'Dashboard',
+            label: <Link to="/">Dashboard</Link>,
           },
 
-          
           {
-            key: '2',
+            key: "2",
             icon: <MdOutlineManageAccounts />,
-            label: 'User Management',
+            label: "User Management",
             children: [
-              { key: '2-1', label: <Link to="/users">All Users</Link> },
-              { key: '2-2', label: <Link to="/clients">Clients (Owners)</Link> },
-              { key: '2-3', label: 'Contractors' },
-              { key: '2-4', label: 'Laborers' },
-              { key: '2-5', label: 'Verification Requests' },
-              { key: '2-6', label: 'Suspended Accounts' }
-            ]
+              { key: "2-1", label: <Link to="/users">All Users</Link> },
+              { key: "2-2", label: <Link to="/clients">Clients (Owners)</Link> },
+              { key: "2-3", label: <Link to="/contractors">Contractors</Link> },
+              { key: "2-4", label: <Link to="/laborers">Laborers</Link> },
+              { key: "2-5", label: "Verification Requests" },
+              { key: "2-6", label: "Suspended Accounts" },
+            ],
           },
 
-          
           {
-            key: '3',
+            key: "3",
             icon: <AiOutlineProject />,
-            label: 'Project Management',
+            label: "Project Management",
             children: [
-              { key: '3-1', label: 'All Projects' },
-              { key: '3-2', label: 'Pending Approval' },
-              { key: '3-3', label: 'Active Projects' },
-              { key: '3-4', label: 'Completed Projects' },
-              { key: '3-5', label: 'Cancelled Projects' },
-              { key: '3-6', label: 'Bids Overview' }
-            ]
+              { key: "3-1", label: <Link to="/projects">All Projects</Link> },
+            ],
           },
 
-         
-
           {
-            key: '4',
-            icon: <MdOutlinePayments />,
-            label: 'Payments & Finance',
-            children: [
-              { key: '4-1', label: 'All Transactions' },
-              { key: '4-2', label: 'Pending Payments' },
-              { key: '4-3', label: 'Withdrawals / Refund Requests' },
-              { key: '4-4', label: 'Subscriptions' },
-              { key: '4-5', label: 'Revenue Reports' },
-            ]
-          },
-
-
-         
-          {
-            key: '5',
-            icon: <IoMdConstruct />,
-            label: 'AI Cost Engine',
-            children: [
-              { key: '5-1', label: 'Material Prices' },
-              { key: '5-2', label: 'API Integrations' },
-              { key: '5-3', label: 'Estimate Logs' },
-              { key: '5-4', label: 'Override Estimates' },
-            ]
-          },
-
-         
-          {
-            key: '6',
-            icon: <AiOutlineNotification />,
-            label: 'Announcements & Policies',
-            children: [
-              { key: '6-1', label: 'Announcements' },
-              { key: '6-2', label: 'Policies & Terms' },
-              { key: '6-3', label: 'Pricing Updates' },
-            ]
-          },
-
-          
-          {
-            key: '7',
-            icon: <MdOutlineSettings />,
-            label: 'System Settings',
-            children: [
-              { key: '7-1', label: 'Admin Roles' },
-              { key: '7-2', label: 'Security Logs' },
-              { key: '7-3', label: 'Backups' },
-              { key: '7-4', label: 'Configurations' },
-            ]
-          },
-
-         
-          {
-            key: '8',
+            key: "8",
             icon: <RiUserSettingsLine />,
-            label: 'Admin Profile',
-            children: [
-              { key: '8-1', label: 'Profile' },
-              { key: '8-2', label: 'Settings' },
-              { key: '8-3', label: 'Logout' },
-            ]
+            label: <Link to="/admin/profile">Admin Profile</Link>,
           },
         ]}
       />

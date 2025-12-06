@@ -1,0 +1,80 @@
+.dashboard-container {
+  padding: 30px;
+  background: #f7f7f7;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.subtitle {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stats-card {
+  text-align: center;
+  padding: 20px;
+}
+
+.stats-value {
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+/* Charts */
+.charts-grid {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Tables */
+.tables-grid {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.table-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.item-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.item-title {
+  font-weight: 600;
+}
+
+.item-sub {
+  font-size: 13px;
+  color: #888;
+}
+
+.right-info {
+  text-align: right;
+}
+
+.joined-date {
+  font-size: 12px;
+  color: #777;
+}
