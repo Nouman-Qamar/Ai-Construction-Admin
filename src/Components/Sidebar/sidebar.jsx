@@ -14,10 +14,11 @@ function Sidebar() {
     if (path === "/" || path === "/dashboard") return "1";
 
     if (path === "/users") return "2-1";
-    if (path === "/allclients") return "2-2";
+    if (path === "/all-clients") return "2-2";
     if (path === "/contractors") return "2-3";
     if (path === "/laborers") return "2-4";
-    if (path === "/verification") return "2-5";
+    if (path === "/verification-requests") return "2-5";
+    if (path === "/suspended-accounts") return "2-6";
 
     if (path === "/projects") return "3-1";
 
@@ -61,11 +62,32 @@ function Sidebar() {
             label: "User Management",
             children: [
               { key: "2-1", label: <Link to="/users">All Users</Link> },
-              { key: "2-2", label: <Link to="/allclients">All Clients</Link> },
-              { key: "2-3", label: <Link to="/contractors">Contractors</Link> },
+
+              {
+                key: "2-2",
+                label: <Link to="/all-clients">All Clients</Link>,
+              },
+
+              {
+                key: "2-3",
+                label: <Link to="/contractors">Contractors</Link>,
+              },
+
               { key: "2-4", label: <Link to="/laborers">Laborers</Link> },
-              { key: "2-5", label: "Verification Requests" },
-              { key: "2-6", label: "Suspended Accounts" },
+
+              {
+                key: "2-5",
+                label: (
+                  <Link to="/verification-requests">Verification Requests</Link>
+                ),
+              },
+
+              {
+                key: "2-6",
+                label: (
+                  <Link to="/suspended-accounts">Suspended Accounts</Link>
+                ),
+              },
             ],
           },
 
@@ -75,7 +97,6 @@ function Sidebar() {
             label: "Project Management",
             children: [
               { key: "3-1", label: <Link to="/projects">All Projects</Link> },
-              
             ],
           },
 
