@@ -10,6 +10,8 @@ import Profile from "./Components/Pages/Profile/Profile";
 import AllProjects from "./Components/Pages/Project/AllProjects";
 import Contractors from "./Components/Pages/User/Contractors/Contractors";
 import Laborers from "./Components/Pages/User/Laborers/Laborers";
+import AllUser from "./Components/User Management/all users/AU";
+import AllClients from "./Components/User Management/all clients/AU";
 
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -61,6 +63,8 @@ function App() {
             
             <Route path="/laborers" element={<Laborers />} />
 
+            <Route path="/users" element={<AllUser />} />
+            <Route path="/allclients" element={<AllClients />} />
             
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
