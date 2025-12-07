@@ -7,9 +7,12 @@ import {
 } from "@ant-design/icons";
 import { laborersData, getTradeColor, getTradeTextColor } from "./laborersData";
 import "./Laborers.css";
+import LaborerReviewModal from "./LaborerReviewModal";
 
 const Laborers = () => {
   const [searchText, setSearchText] = useState("");
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [selectedLaborer, setSelectedLaborer] = useState(null);
 
   const filteredData = laborersData.filter(
     (item) =>
@@ -103,7 +106,13 @@ const Laborers = () => {
                   {/* Actions */}
                   <div className="laborers-col-actions">
                     <div className="laborers-actions-group">
-                      <Button className="laborers-btn-view">
+                      <Button
+                        className="laborers-btn-view"
+                        onClick={() => {
+                          setSelectedLaborer(laborer);
+                          setIsReviewOpen(true);
+                        }}
+                      >
                         View Profile
                       </Button>
                       <MoreOutlined className="laborers-more-icon" />
@@ -115,6 +124,15 @@ const Laborers = () => {
           </div>
         )}
       </div>
+      {/* Laborer Review Modal */}
+      <LaborerReviewModal
+        isOpen={isReviewOpen}
+        laborer={selectedLaborer}
+        onClose={() => {
+          setIsReviewOpen(false);
+          setSelectedLaborer(null);
+        }}
+      />
     </div>
   );
 };

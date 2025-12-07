@@ -7,9 +7,12 @@ import {
 } from "@ant-design/icons";
 import { contractorsData, getSpecialtyColor, getSpecialtyTextColor } from "./contractorsData";
 import "./Contractors.css";
+import ContractorReviewModal from "./ContractorReviewModal";
 
 const Contractors = () => {
   const [searchText, setSearchText] = useState("");
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [selectedContractor, setSelectedContractor] = useState(null);
 
   const filteredData = contractorsData.filter(
     (item) =>
@@ -103,7 +106,13 @@ const Contractors = () => {
                   {/* Actions */}
                   <div className="contractors-col-actions">
                     <div className="contractors-actions-group">
-                      <Button className="contractors-btn-view">
+                      <Button
+                        className="contractors-btn-view"
+                        onClick={() => {
+                          setSelectedContractor(contractor);
+                          setIsReviewOpen(true);
+                        }}
+                      >
                         View Profile
                       </Button>
                       <MoreOutlined className="contractors-more-icon" />
@@ -115,6 +124,15 @@ const Contractors = () => {
           </div>
         )}
       </div> 
+      {/* Review Modal */}
+      <ContractorReviewModal
+        isOpen={isReviewOpen}
+        contractor={selectedContractor}
+        onClose={() => {
+          setIsReviewOpen(false);
+          setSelectedContractor(null);
+        }}
+      />
     </div>
   );
 };
