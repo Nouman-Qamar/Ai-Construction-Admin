@@ -31,6 +31,14 @@ const [selectedItems, setSelectedItems] = useState(new Set())
 const [searchText, setSearchText] = useState("")
 const [activeProjects, setActiveProjects] = useState(Activedata)
 
+// Handler to update an active project (used by Activeproject modal)
+const handleUpdateActive = (updated) => {
+  setActiveProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+  // close modal after update
+  setIsModalOpen(false)
+  setSelectedItem(null)
+}
+
 const handleSelectAll = (event) => {
 const checked = event.target.checked
 setSelectAll(checked)
@@ -185,6 +193,14 @@ return ( <div className="all-projects-wrapper"> <div className="all-projects-hea
 
   {activeTab === "bids" && <BidReviewModal isOpen={isModalOpen} bid={selectedItem} onClose={() => setIsModalOpen(false)} />}
   {activeTab === "cancel" && <CancelReviewModal isOpen={isModalOpen} project={selectedItem} onClose={() => setIsModalOpen(false)} />}
+  {activeTab === "active" && (
+    <Activeproject
+      isOpen={isModalOpen}
+      project={selectedItem}
+      onClose={() => { setIsModalOpen(false); setSelectedItem(null) }}
+      onUpdate={handleUpdateActive}
+    />
+  )}
 </div>
 
 
