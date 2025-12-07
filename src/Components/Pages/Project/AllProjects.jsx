@@ -5,6 +5,7 @@ import { Eye, CheckCircle, XCircle, Calendar, DollarSign, Plus } from "lucide-re
 import { cancelProjectsData } from "./Cancel projects/cancelProjectsData"
 import BidReviewModal from "./Bids overveiw/BidReviewModal"
 import CancelReviewModal from "./Cancel projects/CancelReviewModal"
+import Activeproject from "./active project/active"
 import { Activedata } from "./active project/constant"
 import PendingApproval from "./pendingapproval"
 import CompleteProject from "./completeproject"
@@ -28,6 +29,15 @@ const [isModalOpen, setIsModalOpen] = useState(false)
 const [selectAll, setSelectAll] = useState(false)
 const [selectedItems, setSelectedItems] = useState(new Set())
 const [searchText, setSearchText] = useState("")
+const [activeProjects, setActiveProjects] = useState(Activedata)
+
+// Handler to update an active project (used by Activeproject modal)
+const handleUpdateActive = (updated) => {
+  setActiveProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+  // close modal after update
+  setIsModalOpen(false)
+  setSelectedItem(null)
+}
 
 const handleSelectAll = (event) => {
 const checked = event.target.checked
@@ -144,13 +154,53 @@ return ( <div className="all-projects-wrapper"> <div className="all-projects-hea
             </div>
           ))}
       </>
-    ) : activeTab === "active" ? <Activeproject /> :
-      activeTab === "pending" ? <PendingApproval /> :
+    ) : activeTab === "active" ? (
+      // Render Active Projects list
+      (() => {
+        const filteredActive = activeProjects.filter(item =>
+          item.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.project?.toLowerCase().includes(searchText.toLowerCase())
+        )
+
+        return filteredActive.length === 0 ? (
+          <div className="projects-empty-state"><p>No active projects found</p></div>
+        ) : (
+          filteredActive.map((item) => (
+            <div key={item.id} className="projects-card">
+              <div className="projects-card-left">
+                <div className="projects-avatar">{item.name?.charAt(0)}</div>
+                <div className="projects-details">
+                  <h3 className="projects-name">{item.name}</h3>
+                  <p className="projects-project">{item.project}</p>
+                  <div className="projects-info">
+                    <div className="projects-info-item"><DollarSign size={18} /><span>{item.bid}</span></div>
+                    <div className="projects-info-item"><Calendar size={18} /><span>{item.timeline}</span></div>
+                    <span className={`projects-status projects-status-${item.status?.toLowerCase().replace(/ /g, "-")}`}>{item.status}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="projects-actions">
+                <button className="projects-btn projects-btn-review" onClick={() => { setSelectedItem(item); setIsModalOpen(true) }}><Eye size={18} /> Review</button>
+                <button className="projects-btn projects-btn-accept" disabled><CheckCircle size={18} /> Action</button>
+              </div>
+            </div>
+          ))
+        )
+      })()
+    ) : activeTab === "pending" ? <PendingApproval /> :
         activeTab === "complete" ? <CompleteProject /> : null}
   </div>
 
   {activeTab === "bids" && <BidReviewModal isOpen={isModalOpen} bid={selectedItem} onClose={() => setIsModalOpen(false)} />}
   {activeTab === "cancel" && <CancelReviewModal isOpen={isModalOpen} project={selectedItem} onClose={() => setIsModalOpen(false)} />}
+  {activeTab === "active" && (
+    <Activeproject
+      isOpen={isModalOpen}
+      project={selectedItem}
+      onClose={() => { setIsModalOpen(false); setSelectedItem(null) }}
+      onUpdate={handleUpdateActive}
+    />
+  )}
 </div>
 
 
