@@ -33,7 +33,7 @@ const handleSelectAll = (event) => {
 const checked = event.target.checked
 setSelectAll(checked)
 
-```
+
 if (checked) {
   const newSet = new Set()
   for (let item of filteredItems) {
@@ -43,7 +43,7 @@ if (checked) {
 } else {
   setSelectedItems(new Set())
 }
-```
+
 
 }
 
