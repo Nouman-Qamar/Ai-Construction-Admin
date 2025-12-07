@@ -37,15 +37,7 @@ function AllUser() {
   const [searchText, setSearchText] = useState("");
 
   // Save users to localStorage whenever they change
-  useEffect(() => {
-    try {
-      localStorage.setItem("users", JSON.stringify(users));
-      console.log("Users saved to localStorage");
-    } catch (error) {
-      console.error("Error saving users to localStorage:", error);
-    }
-  }, [users]);
-
+  console.log("Current users state:", users);
   const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -155,6 +147,9 @@ function AllUser() {
     showEditModal,
     handleDelete,
   });
+
+
+  console.log("Rendering AllUser component with users:", filteredUsers);
 
   return (
     <div className="all-users-container">
