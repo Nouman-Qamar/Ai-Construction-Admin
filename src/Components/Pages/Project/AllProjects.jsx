@@ -5,7 +5,7 @@ import { Eye, CheckCircle, XCircle, Calendar, DollarSign, Plus } from "lucide-re
 import { cancelProjectsData } from "./Cancel projects/cancelProjectsData"
 import BidReviewModal from "./Bids overveiw/BidReviewModal"
 import CancelReviewModal from "./Cancel projects/CancelReviewModal"
-import Activeproject from "./active project/active"
+import { Activedata } from "./active project/constant"
 import PendingApproval from "./pendingapproval"
 import CompleteProject from "./completeproject"
 import "./AllProjects.css"
