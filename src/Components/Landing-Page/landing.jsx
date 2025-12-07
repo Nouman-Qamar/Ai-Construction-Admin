@@ -8,13 +8,13 @@ import {
 } from "@ant-design/icons";
 
 const Dashboard = () => {
-  
+
   const [stats, setStats] = useState(null);
   const [recentUsers, setRecentUsers] = useState([]);
   const [recentProjects, setRecentProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  
+
   const dummyDashboardData = {
     stats: {
       totalUsers: 128,
@@ -51,9 +51,9 @@ const Dashboard = () => {
     ],
   };
 
-  
+
   useEffect(() => {
-    
+
 
     setTimeout(() => {
       setStats(dummyDashboardData.stats);
@@ -65,7 +65,7 @@ const Dashboard = () => {
     dummyDashboardData.stats,
     dummyDashboardData.recentUsers,
     dummyDashboardData.recentProjects,
-  ]); 
+  ]);
 
   const getRoleColor = (role) => {
     if (role === "Contractor") {
@@ -73,7 +73,7 @@ const Dashboard = () => {
     } else if (role === "Labor") {
       return "green";
     } else {
-      return "volcano"; 
+      return "volcano";
     }
   };
 
@@ -125,16 +125,16 @@ const Dashboard = () => {
     },
   ];
 
-  
+
   if (loading)
     return <Spin size="large" style={{ marginTop: 80, display: "block" }} />;
 
-  
+
   return (
     <div style={{ padding: "24px" }}>
       <h1 style={{ marginBottom: "20px" }}>Admin Dashboard</h1>
 
-    
+
       <Row gutter={16}>
         <Col span={6}>
           <Card>
@@ -177,7 +177,7 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-      
+
       <Card title="Recent Users" style={{ marginTop: 30 }}>
         <Table
           dataSource={recentUsers}
@@ -191,7 +191,7 @@ const Dashboard = () => {
         </Button>
       </Card>
 
-      
+
       <Card title="Recent Projects" style={{ marginTop: 30 }}>
         <Table
           dataSource={recentProjects}

@@ -2,16 +2,23 @@ import { useState } from "react";
 import "./App.css";
 import { Button, Layout } from "antd";
 import { MenuUnfoldOutlined, MenuFoldOutlined } from "@ant-design/icons";
-import Sidebar from "./Components/Sidebar/sidebar";
+
 import HeaderPage from "./Components/Header/header";
 
 import Dashboard from "./Components/Landing-Page/landing";
 import Profile from "./Components/Pages/Profile/Profile";
 import AllProjects from "./Components/Pages/Project/AllProjects";
-
-
+import Contractors from "./Components/Pages/User/Contractors/Contractors";
+import Laborers from "./Components/Pages/User/Laborers/Laborers";
+import AllUser from "./Components/User Management/all users/AU";
+import AllClients from "./Components/User Management/all clients/AU";
 
 import { Routes, Route, Navigate } from "react-router-dom";
+import Activeproject from "./Components/Pages/Project/active project/active";
+
+import Verification from "./Components/Pages/User/Verification request/VerificationRequests";
+import Suspend from "./Components/Pages/User/Suspended account/SuspendedAccounts";
+import Sidebar from "./Components/Sidebar/sidebar";
 
 const { Header, Sider, Content } = Layout;
 
@@ -28,7 +35,6 @@ function App() {
         className="sider"
       >
         <Sidebar />
-
         <Button
           type="text"
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -37,7 +43,7 @@ function App() {
         />
         <hr />
       </Sider>
-
+   <Activeproject/>
       <Layout>
         <Header className="header">
           <HeaderPage />
@@ -45,18 +51,25 @@ function App() {
 
         <Content className="content">
           <Routes>
-            {/* Default route → Dashboard */}
             <Route path="/" element={<Dashboard />} />
-
-            {/* Admin profile */}
             <Route path="/admin/profile" element={<Profile />} />
 
-            {/* Redirect unknown routes to Dashboard */}
+            <Route path="/projects" element={<AllProjects />} />
+            <Route path="/bids-overview" element={<AllProjects />} />
+            <Route path="/cancel-projects" element={<AllProjects />} />
+
+            <Route path="/contractors" element={<Contractors />} />
+            <Route path="/laborers" element={<Laborers />} />
+
+            <Route path="/users" element={<AllUser />} />
+            <Route path="/all-clients" element={<AllClients />} />
+
+            <Route path="/verification-requests" element={<Verification />} />
+            <Route path="/suspended-accounts" element={<Suspend />} />
+
             <Route path="*" element={<Navigate to="/" replace />} />
-            <Route path="/all-projects" element={<AllProjects />} />
-             
+            
           </Routes>
-          
         </Content>
       </Layout>
     </Layout>
