@@ -14,6 +14,7 @@ import AllUser from "./Components/User Management/all users/AU";
 import AllClients from "./Components/User Management/all clients/AU";
 
 import { Routes, Route, Navigate } from "react-router-dom";
+import Activeproject from "./Components/Pages/Project/active project/active";
 
 import Verification from "./Components/Pages/User/Verification request/VerificationRequests";
 import Suspend from "./Components/Pages/User/Suspended account/SuspendedAccounts";
@@ -42,7 +43,7 @@ function App() {
         />
         <hr />
       </Sider>
-
+   <Activeproject/>
       <Layout>
         <Header className="header">
           <HeaderPage />
@@ -67,6 +68,7 @@ function App() {
             <Route path="/suspended-accounts" element={<Suspend />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
+            
           </Routes>
         </Content>
       </Layout>

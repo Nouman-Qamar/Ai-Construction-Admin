@@ -5,6 +5,7 @@ import { Eye, CheckCircle, XCircle, Calendar, DollarSign, Plus } from "lucide-re
 import { cancelProjectsData } from "./Cancel projects/cancelProjectsData"
 import BidReviewModal from "./Bids overveiw/BidReviewModal"
 import CancelReviewModal from "./Cancel projects/CancelReviewModal"
+import Activeproject from "./active project/active"
 import "./AllProjects.css"
 
 export default function AllProjects({ onProjectAdded }) {
@@ -200,6 +201,19 @@ export default function AllProjects({ onProjectAdded }) {
         >
           <CheckCircle size={18} />
           Bids Overview
+        </button>
+        <button
+          className={`projects-tab ${activeTab === "active" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("active")
+            setSearchText("")
+            setSelectedItems(new Set())
+            setSelectAll(false)
+          }}
+        >
+          <CheckCircle size={18} />
+          ative Projects
+          
         </button>
 
         <button
