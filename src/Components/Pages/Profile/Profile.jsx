@@ -71,7 +71,7 @@ export function Profile() {
       </div>
 
       <div className="profile-sections">
-        {/* Profile Picture */}
+        
         <Card title="Profile Picture" className="profile-card">
           <div className="profile-picture-section">
             <div className="profile-avatar-wrapper">
@@ -94,7 +94,7 @@ export function Profile() {
           </div>
         </Card>
 
-        {/* Personal Information */}
+        
         <Card title="Personal Information" className="profile-card">
           <Form
             layout="vertical"
