@@ -6,7 +6,7 @@ import { MenuUnfoldOutlined, MenuFoldOutlined } from "@ant-design/icons";
 import HeaderPage from "./Components/Header/header";
 
 import Dashboard from "./Components/Landing-Page/landing";
-import Profile from "./Components/Pages/Profile/Profile";
+import Profile from "./Components/Pages/Admin Setting/Profile/Profile";
 import AllProjects from "./Components/Pages/Project/AllProjects";
 import Contractors from "./Components/Pages/User/Contractors/Contractors";
 import Laborers from "./Components/Pages/User/Laborers/Laborers";
@@ -19,6 +19,7 @@ import Activeproject from "./Components/Pages/Project/active project/active";
 import Verification from "./Components/Pages/User/Verification request/VerificationRequests";
 import Suspend from "./Components/Pages/User/Suspended account/SuspendedAccounts";
 import Sidebar from "./Components/Sidebar/sidebar";
+import Speciality from "./Components/Pages/Admin Setting/Speciality/Specialty";
 
 const { Header, Sider, Content } = Layout;
 
@@ -43,32 +44,29 @@ function App() {
         />
         <hr />
       </Sider>
-   <Activeproject/>
+      <Activeproject />
       <Layout>
         <Header className="header">
           <HeaderPage />
         </Header>
 
+        
+
         <Content className="content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/admin/profile" element={<Profile />} />
-
+            <Route path="/admin/speciality" element={<Speciality />} />
             <Route path="/projects" element={<AllProjects />} />
             <Route path="/bids-overview" element={<AllProjects />} />
             <Route path="/cancel-projects" element={<AllProjects />} />
-
             <Route path="/contractors" element={<Contractors />} />
             <Route path="/laborers" element={<Laborers />} />
-
             <Route path="/users" element={<AllUser />} />
             <Route path="/all-clients" element={<AllClients />} />
-
             <Route path="/verification-requests" element={<Verification />} />
             <Route path="/suspended-accounts" element={<Suspend />} />
-
             <Route path="*" element={<Navigate to="/" replace />} />
-            
           </Routes>
         </Content>
       </Layout>

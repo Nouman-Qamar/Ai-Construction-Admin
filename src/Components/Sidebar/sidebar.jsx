@@ -84,9 +84,7 @@ function Sidebar() {
 
               {
                 key: "2-6",
-                label: (
-                  <Link to="/suspended-accounts">Suspended Accounts</Link>
-                ),
+                label: <Link to="/suspended-accounts">Suspended Accounts</Link>,
               },
             ],
           },
@@ -101,9 +99,20 @@ function Sidebar() {
           },
 
           {
-            key: "8",
+            key: "4",
             icon: <RiUserSettingsLine />,
-            label: <Link to="/admin/profile">Admin Profile</Link>,
+            label: "Admin Settings",
+            children: [
+              {
+                key: "4-1",
+
+                label: <Link to="/admin/Profile">Admin Profile</Link>,
+              },
+              {
+                key: "4-2",
+                label: <Link to="/admin/Speciality">Speciality</Link>,
+              },
+            ],
           },
         ]}
       />
