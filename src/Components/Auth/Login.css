@@ -3,7 +3,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #F97316 0%, #5C2A0A 100%);
   padding: 20px;
 }
 
@@ -11,9 +11,10 @@
   width: 100%;
   max-width: 450px;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  background: white;
+  box-shadow: 0 10px 40px rgba(92, 42, 10, 0.3);
+  background: #FFF9F2;
   padding: 40px;
+  border: 2px solid #FFE4C7;
 }
 
 .login-header {
@@ -23,7 +24,12 @@
 
 .login-header h2 {
   margin-bottom: 8px;
-  color: #1a1a1a;
+  color: #5C2A0A;
+  font-weight: 700;
+}
+
+.login-header .ant-typography {
+  color: #F97316;
 }
 
 .login-form {
@@ -34,10 +40,32 @@
 .login-form .ant-input-password {
   padding: 12px 15px;
   border-radius: 8px;
+  border: 1.5px solid #FFE4C7 !important;
+  background: #FFFBF7;
+}
+
+.login-form .ant-input-affix-wrapper:hover,
+.login-form .ant-input-password:hover {
+  border-color: #F97316 !important;
+}
+
+.login-form .ant-input-affix-wrapper-focused,
+.login-form .ant-input-password-focused {
+  border-color: #F97316 !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1) !important;
 }
 
 .login-form .ant-input {
   font-size: 15px;
+  color: #5C2A0A;
+}
+
+.login-form .ant-input::placeholder {
+  color: #B8860B;
+}
+
+.login-form .ant-input-prefix {
+  color: #F97316;
 }
 
 .login-button {
@@ -46,14 +74,20 @@
   font-weight: 600;
   border-radius: 8px;
   margin-top: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #F97316 0%, #D85315 100%);
   border: none;
+  color: white;
 }
 
 .login-button:hover {
-  background: linear-gradient(135deg, #5568d3 0%, #6941a0 100%);
+  background: linear-gradient(135deg, #E85F0D 0%, #C4480F 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.35);
+}
+
+.login-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
 }
 
 .login-footer {
@@ -63,6 +97,7 @@
 
 .login-footer .ant-typography {
   font-size: 13px;
+  color: #5C2A0A;
 }
 
 /* Responsive Design */
