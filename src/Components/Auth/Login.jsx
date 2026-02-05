@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Form, Input, Button, Card, message, Typography } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import { loginUser } from '../../api/userApi';
-import { useAuth } from '../../context/AuthContext';
-import './Login.css';
+import { useState } from "react";
+import { Form, Input, Button, Card, message, Typography } from "antd";
+import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { loginUser } from "../../api/userApi";
+import { useAuth } from "../../context/AuthContext";
+import "./Login.css";
 
 const { Title, Text } = Typography;
 
@@ -16,23 +16,44 @@ const Login = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
+      console.log('📝 Attempting login with:', { email: values.email });
       const response = await loginUser({
         email: values.email,
         password: values.password,
       });
 
+      console.log('📥 Login response:', response);
+
       if (response.success) {
+        console.log('✅ Login successful, user:', response.user);
+        
+        // Store in localStorage first so AuthContext can read it
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        console.log('💾 Stored in localStorage');
+        
         // Use AuthContext login function to properly set auth state
         const isLoginSuccessful = login(response.user, response.token);
-        
+        console.log('🔐 AuthContext login result:', isLoginSuccessful);
+
         if (isLoginSuccessful) {
-          // Redirect to dashboard
-          navigate('/');
+          message.success("Login successful! Redirecting...");
+          console.log('🚀 Navigating to home page...');
+          
+          // Small delay to ensure state updates complete
+          setTimeout(() => {
+            console.log('➡️ Executing navigate("/")');
+            navigate("/", { replace: true });
+          }, 100);
         }
+      } else {
+        console.error('❌ Login unsuccessful:', response);
+        message.error(response.message || 'Login failed');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = error?.message || 'Login failed. Please check your credentials.';
+      console.error('❌ Login error:', error);
+      const errorMessage =
+        error?.message || "Login failed. Please check your credentials.";
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -57,8 +78,8 @@ const Login = () => {
           <Form.Item
             name="email"
             rules={[
-              { required: true, message: 'Please input your email!' },
-              { type: 'email', message: 'Please enter a valid email!' }
+              { required: true, message: "Please input your email!" },
+              { type: "email", message: "Please enter a valid email!" },
             ]}
           >
             <Input
@@ -71,8 +92,8 @@ const Login = () => {
           <Form.Item
             name="password"
             rules={[
-              { required: true, message: 'Please input your password!' },
-              { min: 8, message: 'Password must be at least 8 characters!' }
+              { required: true, message: "Please input your password!" },
+              { min: 8, message: "Password must be at least 8 characters!" },
             ]}
           >
             <Input.Password
@@ -90,7 +111,7 @@ const Login = () => {
               loading={loading}
               block
             >
-              {loading ? 'Logging in...' : 'Log In'}
+              {loading ? "Logging in..." : "Log In"}
             </Button>
           </Form.Item>
         </Form>

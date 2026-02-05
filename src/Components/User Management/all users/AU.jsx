@@ -1,155 +1,252 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Select, Space, Tag, Tooltip, Empty, Spin } from "antd";
-import { USERS_DATA, USER_ROLES, USER_STATUS } from "./Constant";
-import { getColumns } from "./column";
+import { Table, Button, Modal, Form, Input, Select, Tag, message, Spin, Space } from "antd";
+import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import axiosInstance from "../../../api/axiosInstance";
 import "./AU.css";
 
-function AllUser() {
-  // Initialize from localStorage if available, otherwise use USERS_DATA
-  const [users, setUsers] = useState(() => {
-    try {
-      const savedUsers = localStorage.getItem("users");
-      if (savedUsers) {
-        const parsed = JSON.parse(savedUsers);
-        // Validate that parsed data is an array
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Ensure all IDs are numbers
-          return parsed.map(u => ({
-            ...u,
-            id: typeof u.id === 'string' ? parseInt(u.id, 10) : u.id
-          }));
-        }
-      }
-    } catch (error) {
-      console.error("Error loading users from localStorage:", error);
-      localStorage.removeItem("users");
-    }
-    return [...USERS_DATA];
-  });
+const { Option } = Select;
 
+function AllUser() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
-  // Save users to localStorage whenever they change
-  console.log("Current users state:", users);
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchText.toLowerCase())
-  );
+  useEffect(() => {
+    fetchUsers();
+  }, [pagination.current, pagination.pageSize, searchText]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: pagination.current,
+        limit: pagination.pageSize,
+      };
+
+      if (searchText) {
+        params.search = searchText;
+      }
+
+      const response = await axiosInstance.get('/users', { params });
+      console.log('Users response:', response);
+
+      if (response.data) {
+        setUsers(response.data);
+        setPagination({
+          ...pagination,
+          total: response.total || response.data.length,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      message.error('Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTableChange = (newPagination) => {
+    setPagination({
+      current: newPagination.current,
+      pageSize: newPagination.pageSize,
+      total: pagination.total,
+    });
+  };
 
   const showViewModal = (user) => {
     setSelectedUser(user);
     setIsViewModalVisible(true);
   };
 
-  const handleDelete = (userId) => {
-    console.log("Opening delete modal for user:", userId);
-    setUserToDelete(userId);
+  const showEditModal = (user) => {
+    setSelectedUser(user);
+    form.setFieldsValue({
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+    });
+    setIsModalVisible(true);
+  };
+
+  const showDeleteModal = (user) => {
+    setUserToDelete(user);
     setIsDeleteModalVisible(true);
   };
 
-  const confirmDelete = () => {
-    console.log("Confirming delete for user:", userToDelete);
-    console.log("Current users before delete:", users);
-    
-    if (userToDelete !== null && userToDelete !== undefined) {
-      setUsers((prevUsers) => {
-        const updatedUsers = prevUsers.filter((user) => user.id !== userToDelete);
-        console.log("Users after delete:", updatedUsers);
-        return updatedUsers;
-      });
-      setIsDeleteModalVisible(false);
-      setUserToDelete(null);
-      console.log("User deleted successfully");
-    } else {
-      console.log("No user selected for deletion");
-    }
-  };
-
-  const cancelDelete = () => {
-    console.log("Delete cancelled");
-    setIsDeleteModalVisible(false);
-    setUserToDelete(null);
-  };
-
-  const showEditModal = (user) => {
-    setSelectedUser(user);
-    form.setFieldsValue(user);
+  const handleAddUser = () => {
+    form.resetFields();
+    setSelectedUser(null);
     setIsModalVisible(true);
   };
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      console.log("Form validated, values:", values);
-      
+      setLoading(true);
+
       if (selectedUser) {
-        // Edit existing user
-        console.log("Editing user:", selectedUser.id);
-        setUsers(
-          users.map((user) =>
-            user.id === selectedUser.id ? { ...user, ...values } : user
-          )
-        );
+        // Update existing user
+        const response = await axiosInstance.put(`/users/${selectedUser._id}`, values);
+        message.success('User updated successfully');
       } else {
-        // Add new user
-        console.log("Adding new user");
-        const ids = users.map(u => u.id);
-        const maxId = ids.length > 0 ? Math.max(...ids) : 0;
-        const newUser = {
-          id: maxId + 1,
+        // Create new user
+        const response = await axiosInstance.post('/users', {
           ...values,
-          joinDate: new Date().toISOString().split('T')[0],
-        };
-        console.log("New user created:", newUser);
-        setUsers((prev) => [...prev, newUser]);
+          password: values.password || 'TempPassword@123', // Temporary password
+        });
+        message.success('User created successfully');
       }
-      
+
       setIsModalVisible(false);
       form.resetFields();
       setSelectedUser(null);
-      console.log("Modal closed");
+      fetchUsers(); // Refresh the list
     } catch (error) {
-      console.error("Validation or add user error:", error);
+      console.error('Error saving user:', error);
+      message.error(error.response?.data?.message || 'Failed to save user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      setLoading(true);
+      await axiosInstance.delete(`/users/${userToDelete._id}`);
+      message.success('User deleted successfully');
+      setIsDeleteModalVisible(false);
+      setUserToDelete(null);
+      fetchUsers(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      message.error('Failed to delete user');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
     setIsViewModalVisible(false);
+    setIsDeleteModalVisible(false);
     form.resetFields();
     setSelectedUser(null);
+    setUserToDelete(null);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Active":
-        return "green";
-      case "Inactive":
-        return "orange";
-      case "Suspended":
-        return "red";
-      default:
-        return "default";
-    }
+  const getStatusColor = (isActive) => {
+    return isActive ? "green" : "red";
   };
 
-  const columns = getColumns({
-    getStatusColor,
-    showViewModal,
-    showEditModal,
-    handleDelete,
-  });
+  const getRoleColor = (role) => {
+    const colors = {
+      admin: "purple",
+      client: "volcano",
+      contractor: "blue",
+      laborer: "green",
+      user: "cyan",
+    };
+    return colors[role?.toLowerCase()] || "default";
+  };
 
-
-  console.log("Rendering AllUser component with users:", filteredUsers);
+  const columns = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      sorter: true,
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+    },
+    {
+      title: "Phone",
+      dataIndex: "phone",
+      key: "phone",
+      render: (text) => text || 'N/A',
+    },
+    {
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
+      render: (role) => (
+        <Tag color={getRoleColor(role)}>
+          {role?.toUpperCase() || 'N/A'}
+        </Tag>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "isActive",
+      key: "isActive",
+      render: (isActive) => (
+        <Tag color={getStatusColor(isActive)}>
+          {isActive ? "Active" : "Inactive"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Verified",
+      dataIndex: "isVerified",
+      key: "isVerified",
+      render: (isVerified) => (
+        <Tag color={isVerified ? "green" : "orange"}>
+          {isVerified ? "Verified" : "Pending"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Join Date",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date) => new Date(date).toLocaleDateString(),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => showViewModal(record)}
+          >
+            View
+          </Button>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => showEditModal(record)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => showDeleteModal(record)}
+          >
+            Delete
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <div className="all-users-container">
@@ -164,48 +261,42 @@ function AllUser() {
           className="search-input"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
+          onPressEnter={fetchUsers}
           style={{ width: "300px" }}
         />
         <Button
           type="primary"
-          onClick={() => {
-            form.resetFields();
-            setSelectedUser(null);
-            setIsModalVisible(true);
-          }}
+          icon={<PlusOutlined />}
+          onClick={handleAddUser}
         >
-          + Add New User
-        </Button>
-        <Button 
-          onClick={() => console.log("Current users:", users)}
-          type="dashed"
-        >
-          Log Users (Debug)
+          Add New User
         </Button>
       </div>
 
       <Spin spinning={loading}>
         <Table
           columns={columns}
-          dataSource={filteredUsers}
-          rowKey={(record) => record.id}
+          dataSource={users}
+          rowKey={(record) => record._id}
           pagination={{
-            pageSize: 10,
+            ...pagination,
             showSizeChanger: true,
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} of ${total} users`,
           }}
-          locale={{ emptyText: <Empty description="No users found" /> }}
+          onChange={handleTableChange}
           className="users-table"
         />
       </Spin>
 
+      {/* Add/Edit User Modal */}
       <Modal
         title={selectedUser ? "Edit User" : "Add New User"}
         open={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
         confirmLoading={loading}
+        width={600}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -215,48 +306,66 @@ function AllUser() {
           >
             <Input placeholder="Enter name" />
           </Form.Item>
+
           <Form.Item
             name="email"
             label="Email"
             rules={[
               { required: true, message: "Please enter email" },
-              { type: "email", message: "Invalid email" },
+              { type: "email", message: "Invalid email format" },
             ]}
           >
-            <Input placeholder="Enter email" />
+            <Input placeholder="Enter email" disabled={!!selectedUser} />
           </Form.Item>
+
           <Form.Item
             name="phone"
             label="Phone"
-            rules={[{ required: true, message: "Please enter phone number" }]}
           >
             <Input placeholder="Enter phone number" />
           </Form.Item>
+
           <Form.Item
             name="role"
             label="Role"
             rules={[{ required: true, message: "Please select a role" }]}
           >
-            <Select
-              placeholder="Select role"
-              options={USER_ROLES}
-              allowClear
-            />
+            <Select placeholder="Select role">
+              <Option value="admin">Admin</Option>
+              <Option value="client">Client</Option>
+              <Option value="contractor">Contractor</Option>
+              <Option value="laborer">Laborer</Option>
+              <Option value="user">User</Option>
+            </Select>
           </Form.Item>
+
+          {!selectedUser && (
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: "Please enter password" },
+                { min: 8, message: "Password must be at least 8 characters" },
+              ]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+          )}
+
           <Form.Item
-            name="status"
+            name="isActive"
             label="Status"
-            rules={[{ required: true, message: "Please select a status" }]}
+            rules={[{ required: true, message: "Please select status" }]}
           >
-            <Select
-              placeholder="Select status"
-              options={USER_STATUS}
-              allowClear
-            />
+            <Select placeholder="Select status">
+              <Option value={true}>Active</Option>
+              <Option value={false}>Inactive</Option>
+            </Select>
           </Form.Item>
         </Form>
       </Modal>
 
+      {/* View User Modal */}
       <Modal
         title="User Details"
         open={isViewModalVisible}
@@ -269,45 +378,50 @@ function AllUser() {
       >
         {selectedUser && (
           <div className="user-details">
+            <p><strong>Name:</strong> {selectedUser.name}</p>
+            <p><strong>Email:</strong> {selectedUser.email}</p>
+            <p><strong>Phone:</strong> {selectedUser.phone || 'N/A'}</p>
             <p>
-              <strong>Name:</strong> {selectedUser.name}
-            </p>
-            <p>
-              <strong>Email:</strong> {selectedUser.email}
-            </p>
-            <p>
-              <strong>Phone:</strong> {selectedUser.phone}
-            </p>
-            <p>
-              <strong>Role:</strong> <Tag color="blue">{selectedUser.role}</Tag>
-            </p>
-            <p>
-              <strong>Status:</strong>{" "}
-              <Tag color={getStatusColor(selectedUser.status)}>
-                {selectedUser.status}
+              <strong>Role:</strong>{" "}
+              <Tag color={getRoleColor(selectedUser.role)}>
+                {selectedUser.role?.toUpperCase()}
               </Tag>
             </p>
             <p>
-              <strong>Join Date:</strong> {selectedUser.joinDate}
+              <strong>Status:</strong>{" "}
+              <Tag color={getStatusColor(selectedUser.isActive)}>
+                {selectedUser.isActive ? "Active" : "Inactive"}
+              </Tag>
+            </p>
+            <p>
+              <strong>Verified:</strong>{" "}
+              <Tag color={selectedUser.isVerified ? "green" : "orange"}>
+                {selectedUser.isVerified ? "Verified" : "Pending"}
+              </Tag>
+            </p>
+            <p>
+              <strong>Join Date:</strong>{" "}
+              {new Date(selectedUser.createdAt).toLocaleDateString()}
             </p>
           </div>
         )}
       </Modal>
 
+      {/* Delete Confirmation Modal */}
       <Modal
         title="Delete User"
         open={isDeleteModalVisible}
-        onCancel={cancelDelete}
+        onCancel={handleCancel}
+        onOk={confirmDelete}
         okText="Delete"
         cancelText="Cancel"
-        okButtonProps={{
-          danger: true,
-          type: "primary",
-        }}
-        onOk={confirmDelete}
+        okButtonProps={{ danger: true }}
         confirmLoading={loading}
       >
-        <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+        <p>
+          Are you sure you want to delete <strong>{userToDelete?.name}</strong>?
+          This action cannot be undone.
+        </p>
       </Modal>
     </div>
   );
