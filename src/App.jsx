@@ -77,7 +77,7 @@ function App() {
                     <Route path="/verification-requests" element={<Verification />} />
                     <Route path="/suspended-accounts" element={<Suspend />} />
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
                   </Routes>
                 </Content>
               </Layout>
