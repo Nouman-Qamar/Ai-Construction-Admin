@@ -1,103 +1,115 @@
 import { useEffect, useState } from "react";
-import { Card, Row, Col, Statistic, Table, Tag, Button, Spin } from "antd";
+import { Card, Row, Col, Statistic, Table, Tag, Button, Spin, message } from "antd";
 import {
   UserOutlined,
   ProjectOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../../api/axiosInstance";
 
 const Dashboard = () => {
-
-  const [stats, setStats] = useState(null);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProjects: 0,
+    activeProjects: 0,
+    completedProjects: 0,
+  });
   const [recentUsers, setRecentUsers] = useState([]);
   const [recentProjects, setRecentProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  const dummyDashboardData = {
-    stats: {
-      totalUsers: 128,
-      totalProjects: 42,
-      activeProjects: 8,
-      completedProjects: 21,
-    },
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
 
-    recentUsers: [
-      { _id: "1", name: "Ali Raza", role: "Contractor", verified: true },
-      { _id: "2", name: "Ahmed Khan", role: "Labor", verified: false },
-      { _id: "3", name: "Zain Malik", role: "Client", verified: true },
-    ],
+      // Fetch dashboard statistics
+      const dashboardResponse = await axiosInstance.get('/dashboard');
+      console.log('Dashboard stats:', dashboardResponse);
+      
+      if (dashboardResponse.data) {
+        setStats({
+          totalUsers: dashboardResponse.data.totalUsers || 0,
+          totalProjects: dashboardResponse.data.totalProjects || 0,
+          activeProjects: dashboardResponse.data.activeProjects || 0,
+          completedProjects: dashboardResponse.data.completedProjects || 0,
+        });
+      }
 
-    recentProjects: [
-      {
-        _id: "101",
-        title: "House Construction - DHA",
-        client: "Zain Malik",
-        status: "Active",
-      },
-      {
-        _id: "102",
-        title: "Plumbing Work",
-        client: "Ali Raza",
-        status: "Pending Approval",
-      },
-      {
-        _id: "103",
-        title: "Grey Structure Build",
-        client: "Ahmed Khan",
-        status: "Completed",
-      },
-    ],
+      // Fetch recent users
+      try {
+        const usersResponse = await axiosInstance.get('/users', {
+          params: { limit: 5, page: 1 }
+        });
+        console.log('Recent users:', usersResponse);
+        
+        if (usersResponse.data) {
+          setRecentUsers(usersResponse.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+
+      // Fetch recent projects
+      try {
+        const projectsResponse = await axiosInstance.get('/projects', {
+          params: { limit: 5, page: 1 }
+        });
+        console.log('Recent projects:', projectsResponse);
+        
+        if (projectsResponse.data) {
+          setRecentProjects(projectsResponse.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      message.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-
-  useEffect(() => {
-
-
-    setTimeout(() => {
-      setStats(dummyDashboardData.stats);
-      setRecentUsers(dummyDashboardData.recentUsers);
-      setRecentProjects(dummyDashboardData.recentProjects);
-      setLoading(false);
-    }, 800);
-  }, [
-    dummyDashboardData.stats,
-    dummyDashboardData.recentUsers,
-    dummyDashboardData.recentProjects,
-  ]);
-
   const getRoleColor = (role) => {
-    if (role === "Contractor") {
-      return "blue";
-    } else if (role === "Labor") {
-      return "green";
-    } else {
-      return "volcano";
-    }
+    const colors = {
+      contractor: "blue",
+      laborer: "green",
+      client: "volcano",
+      admin: "purple",
+      user: "cyan",
+    };
+    return colors[role?.toLowerCase()] || "default";
   };
 
   const userColumns = [
     {
       title: "Name",
       dataIndex: "name",
+      key: "name",
     },
     {
       title: "Role",
       dataIndex: "role",
-
-      render: (role) => <Tag color={getRoleColor(role)}>{role}</Tag>,
+      key: "role",
+      render: (role) => <Tag color={getRoleColor(role)}>{role || 'N/A'}</Tag>,
     },
     {
       title: "Status",
-      dataIndex: "verified",
-      render: (verified) => {
-        if (verified) {
-          return <Tag color="green">Verified</Tag>;
-        } else {
-          return <Tag color="red">Pending</Tag>;
-        }
-      },
+      dataIndex: "isVerified",
+      key: "isVerified",
+      render: (isVerified) => (
+        <Tag color={isVerified ? "green" : "orange"}>
+          {isVerified ? "Verified" : "Pending"}
+        </Tag>
+      ),
     },
   ];
 
@@ -105,38 +117,54 @@ const Dashboard = () => {
     {
       title: "Project",
       dataIndex: "title",
+      key: "title",
     },
     {
       title: "Client",
-      dataIndex: "client",
+      dataIndex: "clientName",
+      key: "clientName",
+      render: (text, record) => record.client?.name || 'N/A',
     },
     {
       title: "Status",
       dataIndex: "status",
+      key: "status",
       render: (status) => {
         const colors = {
-          "Pending Approval": "orange",
-          Active: "blue",
-          Completed: "green",
-          Cancelled: "red",
+          pending: "orange",
+          active: "blue",
+          completed: "green",
+          cancelled: "red",
         };
-        return <Tag color={colors[status]}>{status}</Tag>;
+        return (
+          <Tag color={colors[status?.toLowerCase()] || "default"}>
+            {status || 'N/A'}
+          </Tag>
+        );
       },
     },
   ];
 
-
-  if (loading)
-    return <Spin size="large" style={{ marginTop: 80, display: "block" }} />;
-
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px' 
+      }}>
+        <Spin size="large" tip="Loading dashboard data..." />
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "24px" }}>
       <h1 style={{ marginBottom: "20px" }}>Admin Dashboard</h1>
 
-
+      {/* Statistics Cards */}
       <Row gutter={16}>
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Total Users"
@@ -146,7 +174,7 @@ const Dashboard = () => {
           </Card>
         </Col>
 
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Total Projects"
@@ -156,7 +184,7 @@ const Dashboard = () => {
           </Card>
         </Col>
 
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Active Projects"
@@ -166,7 +194,7 @@ const Dashboard = () => {
           </Card>
         </Col>
 
-        <Col span={6}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
               title="Completed Projects"
@@ -177,30 +205,40 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-
+      {/* Recent Users Table */}
       <Card title="Recent Users" style={{ marginTop: 30 }}>
         <Table
           dataSource={recentUsers}
           columns={userColumns}
           pagination={false}
-          rowKey="_id"
+          rowKey={(record) => record._id || record.id}
+          locale={{ emptyText: "No users found" }}
         />
 
-        <Button type="primary" style={{ marginTop: 15 }}>
+        <Button 
+          type="primary" 
+          style={{ marginTop: 15 }}
+          onClick={() => navigate('/users')}
+        >
           View All Users
         </Button>
       </Card>
 
-
+      {/* Recent Projects Table */}
       <Card title="Recent Projects" style={{ marginTop: 30 }}>
         <Table
           dataSource={recentProjects}
           columns={projectColumns}
           pagination={false}
-          rowKey="_id"
+          rowKey={(record) => record._id || record.id}
+          locale={{ emptyText: "No projects found" }}
         />
 
-        <Button type="primary" style={{ marginTop: 15 }}>
+        <Button 
+          type="primary" 
+          style={{ marginTop: 15 }}
+          onClick={() => navigate('/projects')}
+        >
           View All Projects
         </Button>
       </Card>
