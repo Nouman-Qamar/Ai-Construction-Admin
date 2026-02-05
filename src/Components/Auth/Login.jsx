@@ -24,36 +24,58 @@ const Login = () => {
 
       console.log('📥 Login response:', response);
 
-      if (response.success) {
+      if (response && response.success) {
         console.log('✅ Login successful, user:', response.user);
+        console.log('🔑 Token received:', response.token ? 'Yes' : 'No');
         
-        // Store in localStorage first so AuthContext can read it
+        // Check if user is admin BEFORE calling login
+        if (response.user.role !== 'admin') {
+          message.error('Access denied. Admin privileges required.');
+          console.error('❌ User role is not admin:', response.user.role);
+          setLoading(false);
+          return;
+        }
+        
+        // Store in localStorage first
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
         console.log('💾 Stored in localStorage');
         
-        // Use AuthContext login function to properly set auth state
+        // Use AuthContext login function to set state
         const isLoginSuccessful = login(response.user, response.token);
         console.log('🔐 AuthContext login result:', isLoginSuccessful);
 
         if (isLoginSuccessful) {
           message.success("Login successful! Redirecting...");
-          console.log('🚀 Navigating to home page...');
+          console.log('🚀 Will navigate in 800ms...');
           
-          // Small delay to ensure state updates complete
+          // Longer delay to ensure state is fully updated
           setTimeout(() => {
-            console.log('➡️ Executing navigate("/")');
-            navigate("/", { replace: true });
-          }, 100);
+            console.log('➡️ Navigating now with window.location');
+            // Use window.location to force a complete page reload
+            // This ensures the ProtectedRoute gets fresh state
+            window.location.href = '/';
+          }, 800);
+        } else {
+          console.error('❌ Login function returned false');
+          message.error('Login failed. Please try again.');
         }
       } else {
-        console.error('❌ Login unsuccessful:', response);
-        message.error(response.message || 'Login failed');
+        console.error('❌ Login unsuccessful. Response:', response);
+        message.error(response?.message || 'Login failed. Please check your credentials.');
       }
     } catch (error) {
       console.error('❌ Login error:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status
+      });
+      
       const errorMessage =
-        error?.message || "Login failed. Please check your credentials.";
+        error?.response?.data?.message ||
+        error?.message || 
+        "Login failed. Please check your credentials.";
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -70,7 +92,10 @@ const Login = () => {
 
         <Form
           name="login"
-          initialValues={{ remember: true }}
+          initialValues={{ 
+            email: 'admin@aiconst.com', // Pre-filled for testing
+            remember: true 
+          }}
           onFinish={onFinish}
           size="large"
           className="login-form"
@@ -117,7 +142,16 @@ const Login = () => {
         </Form>
 
         <div className="login-footer">
-          <Text type="secondary">
+          <Text type="secondary" style={{ display: 'block', marginBottom: '8px' }}>
+            <strong>Test Credentials:</strong>
+          </Text>
+          <Text type="secondary" style={{ fontSize: '13px', display: 'block' }}>
+            Email: admin@aiconst.com
+          </Text>
+          <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '12px' }}>
+            Password: Admin@123456
+          </Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
             Forgot your password? Contact system administrator.
           </Text>
         </div>
