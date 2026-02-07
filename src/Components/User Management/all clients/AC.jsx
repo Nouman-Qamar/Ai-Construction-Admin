@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Select, Space, Tag, Tooltip, Empty, Spin, message } from "antd";
-import { CLIENT_STATUS } from "./Constant";
+import { Table, Button, Modal, Form, Input, Select, Space, Tag, Tooltip, Empty, Spin } from "antd";
+import { CLIENTS_DATA, CLIENT_STATUS } from "./Constant";
 import { getColumns } from "./column";
-import clientService from "../../../Services/clientService";
 import "./AC.css";
 
 function AllClients() {
-  const [clients, setClients] = useState([]);
+
+  const [clients, setClients] = useState(() => {
+    const savedClients = localStorage.getItem("clients");
+    if (savedClients) {
+      const parsed = JSON.parse(savedClients);
+      return parsed.map(c => ({
+        ...c,
+        id: typeof c.id === 'string' ? parseInt(c.id, 10) : c.id
+      }));
+    }
+    return [...CLIENTS_DATA];
+  });
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
@@ -15,110 +26,37 @@ function AllClients() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
 
-  // Fetch clients from backend
-  const fetchClients = async (page = 1, limit = 10, search = "") => {
-    try {
-      setLoading(true);
-      const params = {
-        page,
-        limit,
-        search: search || undefined,
-      };
-      
-      const response = await clientService.getAllClients(params);
-
-      // Normalize response: support array, { data: [...] }, or { success, data }
-      let items = [];
-      let meta = {};
-      if (Array.isArray(response)) {
-        items = response;
-      } else if (response && response.data) {
-        items = response.data.data ?? response.data;
-        meta = {
-          currentPage: response.data.currentPage,
-          limit: response.data.limit,
-          total: response.data.total,
-        };
-      } else if (response && response.success && response.data) {
-        items = response.data.data ?? response.data;
-        meta = {
-          currentPage: response.data.currentPage,
-          limit: response.data.limit,
-          total: response.data.total,
-        };
-      } else if (response && response.items) {
-        items = response.items;
-      } else if (response) {
-        items = response;
-      }
-
-      if (!Array.isArray(items)) items = items ? [items] : [];
-
-      setClients(items);
-      setPagination({
-        current: meta.currentPage || page,
-        pageSize: meta.limit || limit,
-        total: meta.total ?? items.length,
-      });
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-      message.error(error.response?.data?.message || "Failed to fetch clients");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load clients on component mount
+  // Save clients to localStorage whenever they change
   useEffect(() => {
-    fetchClients(pagination.current, pagination.pageSize, searchText);
-  }, []);
+    localStorage.setItem("clients", JSON.stringify(clients));
+    console.log("Clients saved to localStorage");
+  }, [clients]);
 
-  // Handle search with debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchClients(1, pagination.pageSize, searchText);
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchText]);
-
-  const handleTableChange = (newPagination) => {
-    fetchClients(newPagination.current, newPagination.pageSize, searchText);
-  };
+  const filteredClients = clients.filter(
+    (client) =>
+      client.company.toLowerCase().includes(searchText.toLowerCase()) ||
+      client.email.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   const showViewModal = (client) => {
     setSelectedClient(client);
     setIsViewModalVisible(true);
   };
 
-  const handleDelete = (client) => {
-    console.log("Opening delete modal for client:", client);
-    setClientToDelete(client);
+  const handleDelete = (clientId) => {
+    console.log("Opening delete modal for client:", clientId);
+    setClientToDelete(clientId);
     setIsDeleteModalVisible(true);
   };
 
-  const confirmDelete = async () => {
-    if (!clientToDelete) return;
-    
-    try {
-      setLoading(true);
-      await clientService.deleteClient(clientToDelete._id || clientToDelete.id);
-      message.success("Client deleted successfully");
+  const confirmDelete = () => {
+    console.log("Confirming delete for client:", clientToDelete);
+    if (clientToDelete) {
+      setClients((prevClients) => prevClients.filter((client) => client.id !== clientToDelete));
       setIsDeleteModalVisible(false);
       setClientToDelete(null);
-      // Refresh the list
-      fetchClients(pagination.current, pagination.pageSize, searchText);
-    } catch (error) {
-      console.error("Error deleting client:", error);
-      message.error(error.response?.data?.message || "Failed to delete client");
-    } finally {
-      setLoading(false);
+      console.log("Client deleted successfully");
     }
   };
 
@@ -129,64 +67,43 @@ function AllClients() {
 
   const showEditModal = (client) => {
     setSelectedClient(client);
-    // Map backend field names to form fields
-    const formData = {
-      company: client.company,
-      contactPerson: client.contactPerson,
-      email: client.email,
-      phone: client.phone,
-      address: client.address,
-      status: client.status,
-      projects: client.projectCount || 0,
-    };
-    form.setFieldsValue(formData);
+    form.setFieldsValue(client);
     setIsModalVisible(true);
   };
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      setLoading(true);
-
-      // Map form fields to backend expected fields
-      const clientData = {
-        company: values.company,
-        contactPerson: values.contactPerson,
-        email: values.email,
-        phone: values.phone,
-        address: values.address || "",
-        status: values.status,
-        projectCount: parseInt(values.projects) || 0,
-      };
-
+      console.log("Form validated, values:", values);
+      
       if (selectedClient) {
         // Edit existing client
-        await clientService.updateClient(
-          selectedClient._id || selectedClient.id,
-          clientData
+        console.log("Editing client:", selectedClient.id);
+        setClients(
+          clients.map((client) =>
+            client.id === selectedClient.id ? { ...client, ...values } : client
+          )
         );
-        message.success("Client updated successfully");
       } else {
         // Add new client
-        await clientService.createClient(clientData);
-        message.success("Client created successfully");
+        console.log("Adding new client");
+        const ids = clients.map(c => c.id);
+        const maxId = ids.length > 0 ? Math.max(...ids) : 0;
+        const newClient = {
+          id: maxId + 1,
+          ...values,
+          joinDate: new Date().toISOString().split('T')[0],
+        };
+        console.log("New client created:", newClient);
+        setClients((prev) => [...prev, newClient]);
       }
-
+      
       setIsModalVisible(false);
       form.resetFields();
       setSelectedClient(null);
-      
-      // Refresh the list
-      fetchClients(pagination.current, pagination.pageSize, searchText);
+      console.log("Modal closed");
     } catch (error) {
-      console.error("Error saving client:", error);
-      if (error.errorFields) {
-        // Validation error
-        return;
-      }
-      message.error(error.response?.data?.message || "Failed to save client");
-    } finally {
-      setLoading(false);
+      console.error("Validation or add client error:", error);
     }
   };
 
@@ -242,20 +159,25 @@ function AllClients() {
         >
           + Add New Client
         </Button>
+        <Button 
+          onClick={() => console.log("Current clients:", clients)}
+          type="dashed"
+        >
+          Log Clients (Debug)
+        </Button>
       </div>
 
       <Spin spinning={loading}>
         <Table
           columns={columns}
-          dataSource={clients}
-          rowKey={(record) => record._id || record.id}
+          dataSource={filteredClients}
+          rowKey={(record) => record.id}
           pagination={{
-            ...pagination,
+            pageSize: 10,
             showSizeChanger: true,
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} of ${total} clients`,
           }}
-          onChange={handleTableChange}
           locale={{ emptyText: <Empty description="No clients found" /> }}
           className="users-table"
         />
@@ -267,7 +189,6 @@ function AllClients() {
         onOk={handleOk}
         onCancel={handleCancel}
         confirmLoading={loading}
-        okText={selectedClient ? "Update" : "Create"}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -300,12 +221,6 @@ function AllClients() {
             rules={[{ required: true, message: "Please enter phone number" }]}
           >
             <Input placeholder="Enter phone number" />
-          </Form.Item>
-          <Form.Item
-            name="address"
-            label="Address"
-          >
-            <Input.TextArea placeholder="Enter address" rows={3} />
           </Form.Item>
           <Form.Item
             name="projects"
@@ -352,16 +267,8 @@ function AllClients() {
             <p>
               <strong>Phone:</strong> {selectedClient.phone}
             </p>
-            {selectedClient.address && (
-              <p>
-                <strong>Address:</strong> {selectedClient.address}
-              </p>
-            )}
             <p>
-              <strong>Projects:</strong>{" "}
-              <Tag color="blue">
-                {selectedClient.projectCount || selectedClient.projects || 0} projects
-              </Tag>
+              <strong>Projects:</strong> <Tag color="blue">{selectedClient.projects} projects</Tag>
             </p>
             <p>
               <strong>Status:</strong>{" "}
@@ -370,10 +277,7 @@ function AllClients() {
               </Tag>
             </p>
             <p>
-              <strong>Join Date:</strong>{" "}
-              {selectedClient.createdAt
-                ? new Date(selectedClient.createdAt).toLocaleDateString()
-                : selectedClient.joinDate || "N/A"}
+              <strong>Join Date:</strong> {selectedClient.joinDate}
             </p>
           </div>
         )}
@@ -393,11 +297,6 @@ function AllClients() {
         confirmLoading={loading}
       >
         <p>Are you sure you want to delete this client? This action cannot be undone.</p>
-        {clientToDelete && (
-          <p>
-            <strong>Client:</strong> {clientToDelete.company}
-          </p>
-        )}
       </Modal>
     </div>
   );
