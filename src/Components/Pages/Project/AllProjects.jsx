@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Eye, CheckCircle, XCircle, Calendar, DollarSign, Plus } from "lucide-react";
 import { message } from "antd";
-import BidReviewModal from "/Components/Pages/Project/BidReviewModal";
+import BidReviewModal from "./Bids overview/BidReviewModal";
 import CancelReviewModal from "./Cancel projects/CancelReviewModal";
 import Activeproject from "./active project/active";
 import PendingApproval from "./pendingapproval";

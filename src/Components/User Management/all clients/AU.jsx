@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Select, Space, Tag, Tooltip, Empty, Spin, message } from "antd";
 import { CLIENT_STATUS } from "./Constant";
 import { getColumns } from "./column";
-import  clientService from "../Services/clientService.js";
+import clientService from "../Services/clientService";
 import "./AU.css";
 
 function AllClients() {
@@ -16,7 +16,7 @@ function AllClients() {
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState("");
     
-    
+    // Fetch clients from backend
     useEffect(() => {
         fetchClients();
     }, []);
