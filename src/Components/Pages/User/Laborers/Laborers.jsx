@@ -1,289 +1,377 @@
-import React, { useState, useEffect } from "react";
-import { Button, Input, message, Spin } from "antd";
-import { SearchOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
-import laborerService from "../../../../Services/laborerService";
+import { useState, useEffect } from "react";
+import { Table, Button, Modal, Form, Input, Tag, message, Spin, Space } from "antd";
+import { EyeOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from "@ant-design/icons";
+import axiosInstance from "../../../../api/axiosInstance";
 import "./Laborers.css";
-import LaborerReviewModal from "./LaborerReviewModal";
-
-// Helper functions for skill colors
-const getSkillColor = (skill) => {
-  const colors = {
-    'Construction': '#e8f5e9',
-    'Welding': '#e3f2fd',
-    'Equipment Operation': '#fff3e0',
-    'General Labor': '#fce4ec',
-    'Demolition': '#f3e5f5',
-    'Landscaping': '#e0f2f1',
-  };
-  return colors[skill] || '#f5f5f5';
-};
-
-const getSkillTextColor = (skill) => {
-  const colors = {
-    'Construction': '#2e7d32',
-    'Welding': '#1565c0',
-    'Equipment Operation': '#e65100',
-    'General Labor': '#c2185b',
-    'Demolition': '#6a1b9a',
-    'Landscaping': '#00695c',
-  };
-  return colors[skill] || '#616161';
-};
 
 const Laborers = () => {
   const [laborers, setLaborers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [selectedLaborer, setSelectedLaborer] = useState(null);
+  const [laborerToDelete, setLaborerToDelete] = useState(null);
+  const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 10,
     total: 0,
   });
 
-  // Fetch laborers from API
-  const fetchLaborers = async (page = 1, limit = 20, search = "") => {
+  useEffect(() => {
+    fetchLaborers();
+  }, [pagination.current, pagination.pageSize, searchText]);
+
+  const fetchLaborers = async () => {
     try {
       setLoading(true);
       const params = {
-        page,
-        limit,
-        search: search || undefined,
+        page: pagination.current,
+        limit: pagination.pageSize,
       };
-      
-      const response = await laborerService.getAllLaborers(params);
 
-      // Normalize response: support array, { data: [...] }, or { success, data }
-      let items = [];
-      let meta = {};
-      if (Array.isArray(response)) {
-        items = response;
-      } else if (response && response.data) {
-        items = response.data.data ?? response.data;
-        meta = {
-          currentPage: response.data.currentPage,
-          limit: response.data.limit,
-          total: response.data.total,
-        };
-      } else if (response && response.success && response.data) {
-        items = response.data.data ?? response.data;
-        meta = {
-          currentPage: response.data.currentPage,
-          limit: response.data.limit,
-          total: response.data.total,
-        };
-      } else if (response && response.items) {
-        items = response.items;
-      } else if (response) {
-        items = response;
+      if (searchText) {
+        params.search = searchText;
       }
 
-      if (!Array.isArray(items)) items = items ? [items] : [];
+      const response = await axiosInstance.get('/laborers', { params });
+      console.log('Laborers response:', response);
 
-      // Map backend data to frontend format
-      const formattedData = items.map((laborer, index) => ({
-        key: laborer._id || laborer.id || index,
-        _id: laborer._id || laborer.id,
-        name: laborer.name,
-        email: laborer.email,
-        skill: laborer.skills?.[0] || laborer.skill || 'General Labor',
-        rating: laborer.rating || 0,
-        projects: laborer.completedProjects || laborer.projects || 0,
-        status: laborer.isActive || laborer.status === 'Active' ? 'Active' : 'Inactive',
-        isActive: laborer.isActive,
-        phone: laborer.phone,
-        address: laborer.address,
-        experience: laborer.experience || 0,
-      }));
-
-      setLaborers(formattedData);
-      setPagination({
-        current: meta.currentPage || page,
-        pageSize: meta.limit || limit,
-        total: meta.total ?? formattedData.length,
-      });
+      if (response.data || response) {
+        const data = response.data || response;
+        setLaborers(Array.isArray(data) ? data : []);
+        setPagination({
+          ...pagination,
+          total: response.total || (Array.isArray(data) ? data.length : 0),
+        });
+      }
     } catch (error) {
-      console.error("Error fetching laborers:", error);
-      message.error(error.response?.data?.message || "Failed to fetch laborers");
+      console.error('Error fetching laborers:', error);
+      message.error('Failed to load laborers');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchLaborers(pagination.current, pagination.pageSize, searchText);
-  }, []);
+  const handleTableChange = (newPagination) => {
+    setPagination({
+      current: newPagination.current,
+      pageSize: newPagination.pageSize,
+      total: pagination.total,
+    });
+  };
 
-  // Debounced search
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchLaborers(1, pagination.pageSize, searchText);
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchText]);
-
-  const filteredData = laborers.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.skill.toLowerCase().includes(searchText.toLowerCase())
-  );
-
-  const handleReviewClick = (laborer) => {
+  const showViewModal = (laborer) => {
     setSelectedLaborer(laborer);
-    setIsReviewOpen(true);
+    setIsViewModalVisible(true);
   };
 
-  const handleReviewClose = () => {
-    setIsReviewOpen(false);
-    setSelectedLaborer(null);
+  const showEditModal = (laborer) => {
+    setSelectedLaborer(laborer);
+    form.setFieldsValue({
+      name: laborer.name,
+      email: laborer.email,
+      phone: laborer.phone,
+      skills: laborer.skills,
+    });
+    setIsEditModalVisible(true);
   };
 
-  const handleReviewSubmit = async (action, reason) => {
+  const showDeleteModal = (laborer) => {
+    setLaborerToDelete(laborer);
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleEdit = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+
+      await axiosInstance.put(`/laborers/${selectedLaborer._id}`, values);
+      message.success('Laborer updated successfully');
+      
+      setIsEditModalVisible(false);
+      form.resetFields();
+      setSelectedLaborer(null);
+      fetchLaborers();
+    } catch (error) {
+      console.error('Error updating laborer:', error);
+      message.error(error.response?.data?.message || 'Failed to update laborer');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
     try {
       setLoading(true);
+      await axiosInstance.delete(`/laborers/${laborerToDelete._id}`);
+      message.success('Laborer deleted successfully');
       
-      if (action === 'approve') {
-        await laborerService.approveLaborer(selectedLaborer._id);
-        message.success('Laborer approved successfully');
-      } else if (action === 'suspend') {
-        await laborerService.suspendLaborer(selectedLaborer._id, { reason });
-        message.success('Laborer suspended successfully');
-      } else if (action === 'reject') {
-        await laborerService.rejectLaborer(selectedLaborer._id, { reason });
-        message.success('Laborer rejected successfully');
-      }
-      
-      handleReviewClose();
-      // Refresh list
-      fetchLaborers(pagination.current, pagination.pageSize, searchText);
+      setIsDeleteModalVisible(false);
+      setLaborerToDelete(null);
+      fetchLaborers();
     } catch (error) {
-      console.error("Error processing laborer:", error);
-      message.error(error.response?.data?.message || "Failed to process laborer");
+      console.error('Error deleting laborer:', error);
+      message.error('Failed to delete laborer');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleCancel = () => {
+    setIsViewModalVisible(false);
+    setIsEditModalVisible(false);
+    setIsDeleteModalVisible(false);
+    form.resetFields();
+    setSelectedLaborer(null);
+    setLaborerToDelete(null);
+  };
+
+  const getSkillColor = (skill) => {
+    const colors = {
+      'Helper': '#1890ff',
+      'Mason': '#52c41a',
+      'Painter': '#eb2f96',
+      'Electrician': '#faad14',
+      'Plumber': '#13c2c2',
+      'Carpenter': '#722ed1',
+    };
+    return colors[skill] || '#1890ff';
+  };
+
+  const columns = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      sorter: true,
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+    },
+    {
+      title: "Phone",
+      dataIndex: "phone",
+      key: "phone",
+      render: (text) => text || 'N/A',
+    },
+    {
+      title: "Skills",
+      dataIndex: "skills",
+      key: "skills",
+      render: (skills) => skills ? (
+        <Tag color={getSkillColor(skills)}>{skills}</Tag>
+      ) : 'N/A',
+    },
+    {
+      title: "Experience",
+      dataIndex: "experience",
+      key: "experience",
+      render: (exp) => exp ? `${exp} years` : 'N/A',
+    },
+    {
+      title: "Projects",
+      dataIndex: "projectsCompleted",
+      key: "projectsCompleted",
+      render: (count) => count || 0,
+    },
+    {
+      title: "Status",
+      dataIndex: "isActive",
+      key: "isActive",
+      render: (isActive) => (
+        <Tag color={isActive ? "green" : "red"}>
+          {isActive ? "Active" : "Inactive"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Verified",
+      dataIndex: "isVerified",
+      key: "isVerified",
+      render: (isVerified) => (
+        <Tag color={isVerified ? "green" : "orange"}>
+          {isVerified ? "Verified" : "Pending"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => showViewModal(record)}
+          >
+            View
+          </Button>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => showEditModal(record)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => showDeleteModal(record)}
+          >
+            Delete
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  const filteredData = laborers.filter(
+    (laborer) =>
+      laborer.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+      laborer.email?.toLowerCase().includes(searchText.toLowerCase()) ||
+      laborer.skills?.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   return (
     <div className="laborers-wrapper">
       <div className="laborers-header">
         <h2 className="laborers-title">Laborers</h2>
+        <p>Manage and view all laborer users in the system</p>
       </div>
 
-      {/* Search Bar */}
       <div className="laborers-search-section">
         <Input
           prefix={<SearchOutlined />}
-          placeholder="Search by name, email, or skill..."
+          placeholder="Search by name, email, or skills..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           className="laborers-search-input"
+          style={{ width: "300px" }}
         />
       </div>
 
-      {/* Table Container */}
       <Spin spinning={loading}>
-        <div className="laborers-content">
-          {filteredData.length === 0 ? (
-            <div className="laborers-empty-state">
-              <p>No laborers found matching your search</p>
-            </div>
-          ) : (
-            <div className="laborers-table">
-              {/* Table Header */}
-              <div className="laborers-table-header">
-                <div className="laborers-col-laborer">Laborer</div>
-                <div className="laborers-col-skill">Skill</div>
-                <div className="laborers-col-rating">Rating</div>
-                <div className="laborers-col-projects">Projects</div>
-                <div className="laborers-col-status">Status</div>
-                <div className="laborers-col-actions">Actions</div>
-              </div>
-
-              {/* Table Body */}
-              <div className="laborers-table-body">
-                {filteredData.map((laborer) => (
-                  <div key={laborer.key} className="laborers-table-row">
-                    {/* Laborer Info */}
-                    <div className="laborers-col-laborer">
-                      <div className="laborers-row-content">
-                        <div className="laborers-row-info">
-                          <p className="laborers-row-name">{laborer.name}</p>
-                          <p className="laborers-row-email">{laborer.email}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Skill */}
-                    <div className="laborers-col-skill">
-                      <span
-                        className="laborers-skill-badge"
-                        style={{
-                          backgroundColor: getSkillColor(laborer.skill),
-                          color: getSkillTextColor(laborer.skill),
-                        }}
-                      >
-                        {laborer.skill}
-                      </span>
-                    </div>
-
-                    {/* Rating */}
-                    <div className="laborers-col-rating">
-                      <div className="laborers-rating">
-                        <StarFilled className="laborers-star" />
-                        <span>{laborer.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-
-                    {/* Projects */}
-                    <div className="laborers-col-projects">
-                      <span className="laborers-projects-count">{laborer.projects}</span>
-                    </div>
-
-                    {/* Status */}
-                    <div className="laborers-col-status">
-                      <span
-                        className={`laborers-status-badge ${
-                          laborer.status === "Active"
-                            ? "laborers-status-active"
-                            : "laborers-status-inactive"
-                        }`}
-                      >
-                        {laborer.status}
-                      </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="laborers-col-actions">
-                      <Button
-                        type="link"
-                        icon={<MoreOutlined />}
-                        onClick={() => handleReviewClick(laborer)}
-                        className="laborers-action-btn"
-                      >
-                        Review
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <Table
+          columns={columns}
+          dataSource={filteredData}
+          rowKey={(record) => record._id}
+          pagination={{
+            ...pagination,
+            showSizeChanger: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} laborers`,
+          }}
+          onChange={handleTableChange}
+          className="laborers-table"
+        />
       </Spin>
 
-      {/* Review Modal */}
-      {selectedLaborer && (
-        <LaborerReviewModal
-          open={isReviewOpen}
-          laborer={selectedLaborer}
-          onClose={handleReviewClose}
-          onSubmit={handleReviewSubmit}
-        />
-      )}
+      {/* View Modal */}
+      <Modal
+        title="Laborer Details"
+        open={isViewModalVisible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="close" onClick={handleCancel}>
+            Close
+          </Button>,
+        ]}
+      >
+        {selectedLaborer && (
+          <div className="laborer-details">
+            <p><strong>Name:</strong> {selectedLaborer.name}</p>
+            <p><strong>Email:</strong> {selectedLaborer.email}</p>
+            <p><strong>Phone:</strong> {selectedLaborer.phone || 'N/A'}</p>
+            <p>
+              <strong>Skills:</strong>{" "}
+              {selectedLaborer.skills ? (
+                <Tag color={getSkillColor(selectedLaborer.skills)}>
+                  {selectedLaborer.skills}
+                </Tag>
+              ) : 'N/A'}
+            </p>
+            <p><strong>Experience:</strong> {selectedLaborer.experience ? `${selectedLaborer.experience} years` : 'N/A'}</p>
+            <p><strong>Projects Completed:</strong> {selectedLaborer.projectsCompleted || 0}</p>
+            <p>
+              <strong>Status:</strong>{" "}
+              <Tag color={selectedLaborer.isActive ? "green" : "red"}>
+                {selectedLaborer.isActive ? "Active" : "Inactive"}
+              </Tag>
+            </p>
+            <p>
+              <strong>Verified:</strong>{" "}
+              <Tag color={selectedLaborer.isVerified ? "green" : "orange"}>
+                {selectedLaborer.isVerified ? "Verified" : "Pending"}
+              </Tag>
+            </p>
+            <p>
+              <strong>Join Date:</strong>{" "}
+              {new Date(selectedLaborer.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        title="Edit Laborer"
+        open={isEditModalVisible}
+        onOk={handleEdit}
+        onCancel={handleCancel}
+        confirmLoading={loading}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: "Please enter name" }]}
+          >
+            <Input placeholder="Enter name" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Please enter email" },
+              { type: "email", message: "Invalid email format" },
+            ]}
+          >
+            <Input placeholder="Enter email" disabled />
+          </Form.Item>
+
+          <Form.Item name="phone" label="Phone">
+            <Input placeholder="Enter phone number" />
+          </Form.Item>
+
+          <Form.Item name="skills" label="Skills">
+            <Input placeholder="Enter skills" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title="Delete Laborer"
+        open={isDeleteModalVisible}
+        onOk={confirmDelete}
+        onCancel={handleCancel}
+        okText="Delete"
+        okButtonProps={{ danger: true }}
+        confirmLoading={loading}
+      >
+        <p>
+          Are you sure you want to delete <strong>{laborerToDelete?.name}</strong>?
+          This action cannot be undone.
+        </p>
+      </Modal>
     </div>
   );
 };

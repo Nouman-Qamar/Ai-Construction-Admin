@@ -1,19 +1,18 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Select, Space, Tag, Tooltip, Empty, Spin, message } from "antd";
-import { CLIENT_STATUS } from "./Constant";
-import { getColumns } from "./column";
-import clientService from "../../../Services/clientService";
-import "./AC.css";
+import { Table, Button, Modal, Form, Input, Space, Tag, message, Spin } from "antd";
+import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import axiosInstance from "../../../api/axiosInstance";
+import "./AU.css";
 
 function AllClients() {
   const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientToDelete, setClientToDelete] = useState(null);
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [pagination, setPagination] = useState({
     current: 1,
@@ -21,75 +20,48 @@ function AllClients() {
     total: 0,
   });
 
-  // Fetch clients from backend
-  const fetchClients = async (page = 1, limit = 10, search = "") => {
+  useEffect(() => {
+    fetchClients();
+  }, [pagination.current, pagination.pageSize, searchText]);
+
+  const fetchClients = async () => {
     try {
       setLoading(true);
       const params = {
-        page,
-        limit,
-        search: search || undefined,
+        page: pagination.current,
+        limit: pagination.pageSize,
       };
-      
-      const response = await clientService.getAllClients(params);
 
-      // Normalize response: support array, { data: [...] }, or { success, data }
-      let items = [];
-      let meta = {};
-      if (Array.isArray(response)) {
-        items = response;
-      } else if (response && response.data) {
-        items = response.data.data ?? response.data;
-        meta = {
-          currentPage: response.data.currentPage,
-          limit: response.data.limit,
-          total: response.data.total,
-        };
-      } else if (response && response.success && response.data) {
-        items = response.data.data ?? response.data;
-        meta = {
-          currentPage: response.data.currentPage,
-          limit: response.data.limit,
-          total: response.data.total,
-        };
-      } else if (response && response.items) {
-        items = response.items;
-      } else if (response) {
-        items = response;
+      if (searchText) {
+        params.search = searchText;
       }
 
-      if (!Array.isArray(items)) items = items ? [items] : [];
+      // Use /clients endpoint which returns only users with role='client'
+      const response = await axiosInstance.get('/clients', { params });
+      console.log('Clients response:', response);
 
-      setClients(items);
-      setPagination({
-        current: meta.currentPage || page,
-        pageSize: meta.limit || limit,
-        total: meta.total ?? items.length,
-      });
+      if (response.data || response) {
+        const data = response.data || response;
+        setClients(Array.isArray(data) ? data : []);
+        setPagination({
+          ...pagination,
+          total: response.total || (Array.isArray(data) ? data.length : 0),
+        });
+      }
     } catch (error) {
-      console.error("Error fetching clients:", error);
-      message.error(error.response?.data?.message || "Failed to fetch clients");
+      console.error('Error fetching clients:', error);
+      message.error('Failed to load clients');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load clients on component mount
-  useEffect(() => {
-    fetchClients(pagination.current, pagination.pageSize, searchText);
-  }, []);
-
-  // Handle search with debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchClients(1, pagination.pageSize, searchText);
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchText]);
-
   const handleTableChange = (newPagination) => {
-    fetchClients(newPagination.current, newPagination.pageSize, searchText);
+    setPagination({
+      current: newPagination.current,
+      pageSize: newPagination.pageSize,
+      total: pagination.total,
+    });
   };
 
   const showViewModal = (client) => {
@@ -97,50 +69,20 @@ function AllClients() {
     setIsViewModalVisible(true);
   };
 
-  const handleDelete = (client) => {
-    console.log("Opening delete modal for client:", client);
-    setClientToDelete(client);
-    setIsDeleteModalVisible(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!clientToDelete) return;
-    
-    try {
-      setLoading(true);
-      await clientService.deleteClient(clientToDelete._id || clientToDelete.id);
-      message.success("Client deleted successfully");
-      setIsDeleteModalVisible(false);
-      setClientToDelete(null);
-      // Refresh the list
-      fetchClients(pagination.current, pagination.pageSize, searchText);
-    } catch (error) {
-      console.error("Error deleting client:", error);
-      message.error(error.response?.data?.message || "Failed to delete client");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cancelDelete = () => {
-    setIsDeleteModalVisible(false);
-    setClientToDelete(null);
-  };
-
   const showEditModal = (client) => {
     setSelectedClient(client);
-    // Map backend field names to form fields
-    const formData = {
-      company: client.company,
-      contactPerson: client.contactPerson,
+    form.setFieldsValue({
+      name: client.name,
       email: client.email,
       phone: client.phone,
-      address: client.address,
-      status: client.status,
-      projects: client.projectCount || 0,
-    };
-    form.setFieldsValue(formData);
+      company: client.company,
+    });
     setIsModalVisible(true);
+  };
+
+  const showDeleteModal = (client) => {
+    setClientToDelete(client);
+    setIsDeleteModalVisible(true);
   };
 
   const handleOk = async () => {
@@ -148,43 +90,42 @@ function AllClients() {
       const values = await form.validateFields();
       setLoading(true);
 
-      // Map form fields to backend expected fields
-      const clientData = {
-        company: values.company,
-        contactPerson: values.contactPerson,
-        email: values.email,
-        phone: values.phone,
-        address: values.address || "",
-        status: values.status,
-        projectCount: parseInt(values.projects) || 0,
-      };
-
       if (selectedClient) {
-        // Edit existing client
-        await clientService.updateClient(
-          selectedClient._id || selectedClient.id,
-          clientData
-        );
-        message.success("Client updated successfully");
+        // Update existing client
+        await axiosInstance.put(`/clients/${selectedClient._id}`, values);
+        message.success('Client updated successfully');
       } else {
-        // Add new client
-        await clientService.createClient(clientData);
-        message.success("Client created successfully");
+        // Create new client
+        await axiosInstance.post('/clients', {
+          ...values,
+          role: 'client', // Ensure role is set to client
+        });
+        message.success('Client created successfully');
       }
 
       setIsModalVisible(false);
       form.resetFields();
       setSelectedClient(null);
-      
-      // Refresh the list
-      fetchClients(pagination.current, pagination.pageSize, searchText);
+      fetchClients();
     } catch (error) {
-      console.error("Error saving client:", error);
-      if (error.errorFields) {
-        // Validation error
-        return;
-      }
-      message.error(error.response?.data?.message || "Failed to save client");
+      console.error('Error saving client:', error);
+      message.error(error.response?.data?.message || 'Failed to save client');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      setLoading(true);
+      await axiosInstance.delete(`/clients/${clientToDelete._id}`);
+      message.success('Client deleted successfully');
+      setIsDeleteModalVisible(false);
+      setClientToDelete(null);
+      fetchClients();
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      message.error('Failed to delete client');
     } finally {
       setLoading(false);
     }
@@ -193,54 +134,114 @@ function AllClients() {
   const handleCancel = () => {
     setIsModalVisible(false);
     setIsViewModalVisible(false);
+    setIsDeleteModalVisible(false);
     form.resetFields();
     setSelectedClient(null);
+    setClientToDelete(null);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Active":
-        return "green";
-      case "Inactive":
-        return "orange";
-      case "Suspended":
-        return "red";
-      default:
-        return "default";
-    }
-  };
-
-  const columns = getColumns({
-    getStatusColor,
-    showViewModal,
-    showEditModal,
-    handleDelete,
-  });
+  const columns = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      sorter: true,
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+    },
+    {
+      title: "Phone",
+      dataIndex: "phone",
+      key: "phone",
+      render: (text) => text || 'N/A',
+    },
+    {
+      title: "Company",
+      dataIndex: "company",
+      key: "company",
+      render: (text) => text || 'N/A',
+    },
+    {
+      title: "Status",
+      dataIndex: "isActive",
+      key: "isActive",
+      render: (isActive) => (
+        <Tag color={isActive ? "green" : "red"}>
+          {isActive ? "Active" : "Inactive"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Verified",
+      dataIndex: "isVerified",
+      key: "isVerified",
+      render: (isVerified) => (
+        <Tag color={isVerified ? "green" : "orange"}>
+          {isVerified ? "Verified" : "Pending"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => showViewModal(record)}
+          >
+            View
+          </Button>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => showEditModal(record)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => showDeleteModal(record)}
+          >
+            Delete
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <div className="all-users-container">
       <div className="users-header">
         <h1>All Clients</h1>
-        <p>Manage and view all registered clients in the system</p>
+        <p>Manage and view all client users in the system</p>
       </div>
 
       <div className="users-controls">
         <Input
-          placeholder="Search by company or email..."
+          placeholder="Search by name, email, or company..."
           className="search-input"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
+          onPressEnter={fetchClients}
           style={{ width: "300px" }}
         />
         <Button
           type="primary"
+          icon={<PlusOutlined />}
           onClick={() => {
             form.resetFields();
             setSelectedClient(null);
             setIsModalVisible(true);
           }}
         >
-          + Add New Client
+          Add New Client
         </Button>
       </div>
 
@@ -248,7 +249,7 @@ function AllClients() {
         <Table
           columns={columns}
           dataSource={clients}
-          rowKey={(record) => record._id || record.id}
+          rowKey={(record) => record._id}
           pagination={{
             ...pagination,
             showSizeChanger: true,
@@ -256,78 +257,63 @@ function AllClients() {
               `${range[0]}-${range[1]} of ${total} clients`,
           }}
           onChange={handleTableChange}
-          locale={{ emptyText: <Empty description="No clients found" /> }}
           className="users-table"
         />
       </Spin>
 
+      {/* Add/Edit Client Modal */}
       <Modal
         title={selectedClient ? "Edit Client" : "Add New Client"}
         open={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
         confirmLoading={loading}
-        okText={selectedClient ? "Update" : "Create"}
+        width={600}
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="company"
-            label="Company Name"
-            rules={[{ required: true, message: "Please enter company name" }]}
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: "Please enter client name" }]}
           >
-            <Input placeholder="Enter company name" />
+            <Input placeholder="Enter name" />
           </Form.Item>
-          <Form.Item
-            name="contactPerson"
-            label="Contact Person"
-            rules={[{ required: true, message: "Please enter contact person name" }]}
-          >
-            <Input placeholder="Enter contact person name" />
-          </Form.Item>
+
           <Form.Item
             name="email"
             label="Email"
             rules={[
               { required: true, message: "Please enter email" },
-              { type: "email", message: "Invalid email" },
+              { type: "email", message: "Invalid email format" },
             ]}
           >
-            <Input placeholder="Enter email" />
+            <Input placeholder="Enter email" disabled={!!selectedClient} />
           </Form.Item>
-          <Form.Item
-            name="phone"
-            label="Phone"
-            rules={[{ required: true, message: "Please enter phone number" }]}
-          >
+
+          <Form.Item name="phone" label="Phone">
             <Input placeholder="Enter phone number" />
           </Form.Item>
-          <Form.Item
-            name="address"
-            label="Address"
-          >
-            <Input.TextArea placeholder="Enter address" rows={3} />
+
+          <Form.Item name="company" label="Company">
+            <Input placeholder="Enter company name" />
           </Form.Item>
-          <Form.Item
-            name="projects"
-            label="Number of Projects"
-            rules={[{ required: true, message: "Please enter number of projects" }]}
-          >
-            <Input type="number" placeholder="Enter number of projects" />
-          </Form.Item>
-          <Form.Item
-            name="status"
-            label="Status"
-            rules={[{ required: true, message: "Please select a status" }]}
-          >
-            <Select
-              placeholder="Select status"
-              options={CLIENT_STATUS}
-              allowClear
-            />
-          </Form.Item>
+
+          {!selectedClient && (
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: "Please enter password" },
+                { min: 8, message: "Password must be at least 8 characters" },
+              ]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
 
+      {/* View Client Modal */}
       <Modal
         title="Client Details"
         open={isViewModalVisible}
@@ -340,64 +326,45 @@ function AllClients() {
       >
         {selectedClient && (
           <div className="user-details">
+            <p><strong>Name:</strong> {selectedClient.name}</p>
+            <p><strong>Email:</strong> {selectedClient.email}</p>
+            <p><strong>Phone:</strong> {selectedClient.phone || 'N/A'}</p>
+            <p><strong>Company:</strong> {selectedClient.company || 'N/A'}</p>
             <p>
-              <strong>Company:</strong> {selectedClient.company}
-            </p>
-            <p>
-              <strong>Contact Person:</strong> {selectedClient.contactPerson}
-            </p>
-            <p>
-              <strong>Email:</strong> {selectedClient.email}
-            </p>
-            <p>
-              <strong>Phone:</strong> {selectedClient.phone}
-            </p>
-            {selectedClient.address && (
-              <p>
-                <strong>Address:</strong> {selectedClient.address}
-              </p>
-            )}
-            <p>
-              <strong>Projects:</strong>{" "}
-              <Tag color="blue">
-                {selectedClient.projectCount || selectedClient.projects || 0} projects
+              <strong>Status:</strong>{" "}
+              <Tag color={selectedClient.isActive ? "green" : "red"}>
+                {selectedClient.isActive ? "Active" : "Inactive"}
               </Tag>
             </p>
             <p>
-              <strong>Status:</strong>{" "}
-              <Tag color={getStatusColor(selectedClient.status)}>
-                {selectedClient.status}
+              <strong>Verified:</strong>{" "}
+              <Tag color={selectedClient.isVerified ? "green" : "orange"}>
+                {selectedClient.isVerified ? "Verified" : "Pending"}
               </Tag>
             </p>
             <p>
               <strong>Join Date:</strong>{" "}
-              {selectedClient.createdAt
-                ? new Date(selectedClient.createdAt).toLocaleDateString()
-                : selectedClient.joinDate || "N/A"}
+              {new Date(selectedClient.createdAt).toLocaleDateString()}
             </p>
           </div>
         )}
       </Modal>
 
+      {/* Delete Confirmation Modal */}
       <Modal
         title="Delete Client"
         open={isDeleteModalVisible}
-        onCancel={cancelDelete}
+        onCancel={handleCancel}
+        onOk={confirmDelete}
         okText="Delete"
         cancelText="Cancel"
-        okButtonProps={{
-          danger: true,
-          type: "primary",
-        }}
-        onOk={confirmDelete}
+        okButtonProps={{ danger: true }}
         confirmLoading={loading}
       >
-        <p>Are you sure you want to delete this client? This action cannot be undone.</p>
-        {clientToDelete && (
-          <p>
-            <strong>Client:</strong> {clientToDelete.company}
-          </p>
-        )}
+        <p>
+          Are you sure you want to delete <strong>{clientToDelete?.name}</strong>?
+          This action cannot be undone.
+        </p>
       </Modal>
     </div>
   );
