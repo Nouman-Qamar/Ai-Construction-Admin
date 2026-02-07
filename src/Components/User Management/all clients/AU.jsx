@@ -1,251 +1,373 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Select, Space, Tag, Tooltip, Empty, Spin } from "antd";
-import { CLIENTS_DATA, CLIENT_STATUS } from "./Constant";
-import { getColumns } from "./column";
+import { Table, Button, Modal, Form, Input, Select, Tag, message, Spin, Space } from "antd";
+import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import axiosInstance from "../../../api/axiosInstance";
 import "./AU.css";
 
-function AllClients() {
-  // Initialize from localStorage if available, otherwise use CLIENTS_DATA
-  const [clients, setClients] = useState(() => {
-    const savedClients = localStorage.getItem("clients");
-    if (savedClients) {
-      const parsed = JSON.parse(savedClients);
-      // Ensure all IDs are numbers
-      return parsed.map(c => ({
-        ...c,
-        id: typeof c.id === 'string' ? parseInt(c.id, 10) : c.id
-      }));
-    }
-    return [...CLIENTS_DATA];
-  });
+const { Option } = Select;
 
+function AllUser() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [clientToDelete, setClientToDelete] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
-  // Save clients to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem("clients", JSON.stringify(clients));
-    console.log("Clients saved to localStorage");
-  }, [clients]);
+    fetchUsers();
+  }, [pagination.current, pagination.pageSize, searchText]);
 
-  const filteredClients = clients.filter(
-    (client) =>
-      client.company.toLowerCase().includes(searchText.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: pagination.current,
+        limit: pagination.pageSize,
+      };
 
-  const showViewModal = (client) => {
-    setSelectedClient(client);
-    setIsViewModalVisible(true);
-  };
+      if (searchText) {
+        params.search = searchText;
+      }
 
-  const handleDelete = (clientId) => {
-    console.log("Opening delete modal for client:", clientId);
-    setClientToDelete(clientId);
-    setIsDeleteModalVisible(true);
-  };
+      const response = await axiosInstance.get('/users', { params });
+      console.log('Users response:', response);
 
-  const confirmDelete = () => {
-    console.log("Confirming delete for client:", clientToDelete);
-    if (clientToDelete) {
-      setClients((prevClients) => prevClients.filter((client) => client.id !== clientToDelete));
-      setIsDeleteModalVisible(false);
-      setClientToDelete(null);
-      console.log("Client deleted successfully");
+      if (response.data) {
+        setUsers(response.data);
+        setPagination({
+          ...pagination,
+          total: response.total || response.data.length,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      message.error('Failed to load users');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const cancelDelete = () => {
-    setIsDeleteModalVisible(false);
-    setClientToDelete(null);
+  const handleTableChange = (newPagination) => {
+    setPagination({
+      current: newPagination.current,
+      pageSize: newPagination.pageSize,
+      total: pagination.total,
+    });
   };
 
-  const showEditModal = (client) => {
-    setSelectedClient(client);
-    form.setFieldsValue(client);
+  const showViewModal = (user) => {
+    setSelectedUser(user);
+    setIsViewModalVisible(true);
+  };
+
+  const showEditModal = (user) => {
+    setSelectedUser(user);
+    form.setFieldsValue({
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+    });
+    setIsModalVisible(true);
+  };
+
+  const showDeleteModal = (user) => {
+    setUserToDelete(user);
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleAddUser = () => {
+    form.resetFields();
+    setSelectedUser(null);
     setIsModalVisible(true);
   };
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      console.log("Form validated, values:", values);
-      
-      if (selectedClient) {
-        // Edit existing client
-        console.log("Editing client:", selectedClient.id);
-        setClients(
-          clients.map((client) =>
-            client.id === selectedClient.id ? { ...client, ...values } : client
-          )
-        );
+      setLoading(true);
+
+      if (selectedUser) {
+        // Update existing user
+        const response = await axiosInstance.put(`/users/${selectedUser._id}`, values);
+        message.success('User updated successfully');
       } else {
-        // Add new client
-        console.log("Adding new client");
-        const ids = clients.map(c => c.id);
-        const maxId = ids.length > 0 ? Math.max(...ids) : 0;
-        const newClient = {
-          id: maxId + 1,
+        // Create new user
+        const response = await axiosInstance.post('/users', {
           ...values,
-          joinDate: new Date().toISOString().split('T')[0],
-        };
-        console.log("New client created:", newClient);
-        setClients((prev) => [...prev, newClient]);
+          password: values.password || 'TempPassword@123', // Temporary password
+        });
+        message.success('User created successfully');
       }
-      
+
       setIsModalVisible(false);
       form.resetFields();
-      setSelectedClient(null);
-      console.log("Modal closed");
+      setSelectedUser(null);
+      fetchUsers(); // Refresh the list
     } catch (error) {
-      console.error("Validation or add client error:", error);
+      console.error('Error saving user:', error);
+      message.error(error.response?.data?.message || 'Failed to save user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      setLoading(true);
+      await axiosInstance.delete(`/users/${userToDelete._id}`);
+      message.success('User deleted successfully');
+      setIsDeleteModalVisible(false);
+      setUserToDelete(null);
+      fetchUsers(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      message.error('Failed to delete user');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
     setIsViewModalVisible(false);
+    setIsDeleteModalVisible(false);
     form.resetFields();
-    setSelectedClient(null);
+    setSelectedUser(null);
+    setUserToDelete(null);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Active":
-        return "green";
-      case "Inactive":
-        return "orange";
-      case "Suspended":
-        return "red";
-      default:
-        return "default";
-    }
+  const getStatusColor = (isActive) => {
+    return isActive ? "green" : "red";
   };
 
-  const columns = getColumns({
-    getStatusColor,
-    showViewModal,
-    showEditModal,
-    handleDelete,
-  });
+  const getRoleColor = (role) => {
+    const colors = {
+      admin: "purple",
+      client: "volcano",
+      contractor: "blue",
+      laborer: "green",
+      user: "cyan",
+    };
+    return colors[role?.toLowerCase()] || "default";
+  };
+
+  const columns = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      sorter: true,
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+    },
+    {
+      title: "Phone",
+      dataIndex: "phone",
+      key: "phone",
+      render: (text) => text || 'N/A',
+    },
+    {
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
+      render: (role) => (
+        <Tag color={getRoleColor(role)}>
+          {role?.toUpperCase() || 'N/A'}
+        </Tag>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "isActive",
+      key: "isActive",
+      render: (isActive) => (
+        <Tag color={getStatusColor(isActive)}>
+          {isActive ? "Active" : "Inactive"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Verified",
+      dataIndex: "isVerified",
+      key: "isVerified",
+      render: (isVerified) => (
+        <Tag color={isVerified ? "green" : "orange"}>
+          {isVerified ? "Verified" : "Pending"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Join Date",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date) => new Date(date).toLocaleDateString(),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => showViewModal(record)}
+          >
+            View
+          </Button>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => showEditModal(record)}
+          >
+            Edit
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => showDeleteModal(record)}
+          >
+            Delete
+          </Button>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <div className="all-users-container">
       <div className="users-header">
-        <h1>All Clients</h1>
-        <p>Manage and view all registered clients in the system</p>
+        <h1>All Users</h1>
+        <p>Manage and view all registered users in the system</p>
       </div>
 
       <div className="users-controls">
         <Input
-          placeholder="Search by company or email..."
+          placeholder="Search by name or email..."
           className="search-input"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
+          onPressEnter={fetchUsers}
           style={{ width: "300px" }}
         />
         <Button
           type="primary"
-          onClick={() => {
-            form.resetFields();
-            setSelectedClient(null);
-            setIsModalVisible(true);
-          }}
+          icon={<PlusOutlined />}
+          onClick={handleAddUser}
         >
-          + Add New Client
-        </Button>
-        <Button 
-          onClick={() => console.log("Current clients:", clients)}
-          type="dashed"
-        >
-          Log Clients (Debug)
+          Add New User
         </Button>
       </div>
 
       <Spin spinning={loading}>
         <Table
           columns={columns}
-          dataSource={filteredClients}
-          rowKey={(record) => record.id}
+          dataSource={users}
+          rowKey={(record) => record._id}
           pagination={{
-            pageSize: 10,
+            ...pagination,
             showSizeChanger: true,
             showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} clients`,
+              `${range[0]}-${range[1]} of ${total} users`,
           }}
-          locale={{ emptyText: <Empty description="No clients found" /> }}
+          onChange={handleTableChange}
           className="users-table"
         />
       </Spin>
 
+      {/* Add/Edit User Modal */}
       <Modal
-        title={selectedClient ? "Edit Client" : "Add New Client"}
+        title={selectedUser ? "Edit User" : "Add New User"}
         open={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
         confirmLoading={loading}
+        width={600}
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="company"
-            label="Company Name"
-            rules={[{ required: true, message: "Please enter company name" }]}
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: "Please enter user name" }]}
           >
-            <Input placeholder="Enter company name" />
+            <Input placeholder="Enter name" />
           </Form.Item>
-          <Form.Item
-            name="contactPerson"
-            label="Contact Person"
-            rules={[{ required: true, message: "Please enter contact person name" }]}
-          >
-            <Input placeholder="Enter contact person name" />
-          </Form.Item>
+
           <Form.Item
             name="email"
             label="Email"
             rules={[
               { required: true, message: "Please enter email" },
-              { type: "email", message: "Invalid email" },
+              { type: "email", message: "Invalid email format" },
             ]}
           >
-            <Input placeholder="Enter email" />
+            <Input placeholder="Enter email" disabled={!!selectedUser} />
           </Form.Item>
+
           <Form.Item
             name="phone"
             label="Phone"
-            rules={[{ required: true, message: "Please enter phone number" }]}
           >
             <Input placeholder="Enter phone number" />
           </Form.Item>
+
           <Form.Item
-            name="projects"
-            label="Number of Projects"
-            rules={[{ required: true, message: "Please enter number of projects" }]}
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: "Please select a role" }]}
           >
-            <Input type="number" placeholder="Enter number of projects" />
+            <Select placeholder="Select role">
+              <Option value="admin">Admin</Option>
+              <Option value="client">Client</Option>
+              <Option value="contractor">Contractor</Option>
+              <Option value="laborer">Laborer</Option>
+              <Option value="user">User</Option>
+            </Select>
           </Form.Item>
+
+          {!selectedUser && (
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: "Please enter password" },
+                { min: 8, message: "Password must be at least 8 characters" },
+              ]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+          )}
+
           <Form.Item
-            name="status"
+            name="isActive"
             label="Status"
-            rules={[{ required: true, message: "Please select a status" }]}
+            rules={[{ required: true, message: "Please select status" }]}
           >
-            <Select
-              placeholder="Select status"
-              options={CLIENT_STATUS}
-              allowClear
-            />
+            <Select placeholder="Select status">
+              <Option value={true}>Active</Option>
+              <Option value={false}>Inactive</Option>
+            </Select>
           </Form.Item>
         </Form>
       </Modal>
 
+      {/* View User Modal */}
       <Modal
-        title="Client Details"
+        title="User Details"
         open={isViewModalVisible}
         onCancel={handleCancel}
         footer={[
@@ -254,53 +376,55 @@ function AllClients() {
           </Button>,
         ]}
       >
-        {selectedClient && (
+        {selectedUser && (
           <div className="user-details">
+            <p><strong>Name:</strong> {selectedUser.name}</p>
+            <p><strong>Email:</strong> {selectedUser.email}</p>
+            <p><strong>Phone:</strong> {selectedUser.phone || 'N/A'}</p>
             <p>
-              <strong>Company:</strong> {selectedClient.company}
-            </p>
-            <p>
-              <strong>Contact Person:</strong> {selectedClient.contactPerson}
-            </p>
-            <p>
-              <strong>Email:</strong> {selectedClient.email}
-            </p>
-            <p>
-              <strong>Phone:</strong> {selectedClient.phone}
-            </p>
-            <p>
-              <strong>Projects:</strong> <Tag color="blue">{selectedClient.projects} projects</Tag>
-            </p>
-            <p>
-              <strong>Status:</strong>{" "}
-              <Tag color={getStatusColor(selectedClient.status)}>
-                {selectedClient.status}
+              <strong>Role:</strong>{" "}
+              <Tag color={getRoleColor(selectedUser.role)}>
+                {selectedUser.role?.toUpperCase()}
               </Tag>
             </p>
             <p>
-              <strong>Join Date:</strong> {selectedClient.joinDate}
+              <strong>Status:</strong>{" "}
+              <Tag color={getStatusColor(selectedUser.isActive)}>
+                {selectedUser.isActive ? "Active" : "Inactive"}
+              </Tag>
+            </p>
+            <p>
+              <strong>Verified:</strong>{" "}
+              <Tag color={selectedUser.isVerified ? "green" : "orange"}>
+                {selectedUser.isVerified ? "Verified" : "Pending"}
+              </Tag>
+            </p>
+            <p>
+              <strong>Join Date:</strong>{" "}
+              {new Date(selectedUser.createdAt).toLocaleDateString()}
             </p>
           </div>
         )}
       </Modal>
 
+      {/* Delete Confirmation Modal */}
       <Modal
-        title="Delete Client"
+        title="Delete User"
         open={isDeleteModalVisible}
-        onCancel={cancelDelete}
+        onCancel={handleCancel}
+        onOk={confirmDelete}
         okText="Delete"
         cancelText="Cancel"
-        okButtonProps={{
-          danger: true,
-          type: "primary",
-        }}
-        onOk={confirmDelete}
+        okButtonProps={{ danger: true }}
         confirmLoading={loading}
       >
-        <p>Are you sure you want to delete this client? This action cannot be undone.</p>
+        <p>
+          Are you sure you want to delete <strong>{userToDelete?.name}</strong>?
+          This action cannot be undone.
+        </p>
       </Modal>
     </div>
   );
 }
 
-export default AllClients;
+export default AllUser;
