@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Eye, CheckCircle, XCircle, Calendar, DollarSign, Plus } from "lucide-react";
 import { message } from "antd";
-import BidReviewModal from "./Bids overview/BidReviewModal";
-import CancelReviewModal from "./Cancel projects/CancelReviewModal";
-import Activeproject from "./active project/active";
+import BidReviewModal from "./BidsOverveiw/BidReviewModal";
+import CancelReviewModal from "./CancelProjects/CancelReviewModal";
+import Activeproject from "./activeProject/active";
 import PendingApproval from "./pendingapproval";
 import CompleteProject from "./completeproject";
-import projectService from "../Services/projectService";
-import bidService from "../Services/bidService";
+import projectService from "../../../Services/projectService";
+import bidService from "../../../Services/bidService";
 import "./AllProjects.css";
 
 export default function AllProjects({ onProjectAdded }) {

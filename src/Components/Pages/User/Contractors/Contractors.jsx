@@ -6,7 +6,7 @@ import {
   StarFilled
 } from "@ant-design/icons";
 import { getSpecialtyColor, getSpecialtyTextColor } from "./contractorsData";
-import contractorService from "../services/contractorService";
+import contractorService from "../../../../Services/contractorService";
 import "./Contractors.css";
 import ContractorReviewModal from "./ContractorReviewModal";
 

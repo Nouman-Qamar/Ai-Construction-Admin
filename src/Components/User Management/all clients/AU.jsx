@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Select, Space, Tag, Tooltip, Empty, Spin, message } from "antd";
+import { Table, Button, Modal, Form, Input, Select, Spin, message, Tag, Empty } from "antd";
+
 import { CLIENT_STATUS } from "./Constant";
 import { getColumns } from "./column";
-import clientService from "../Services/clientService";
+
+// Correct service path
+import clientService from "../../../Services/clientService";
+
 import "./AU.css";
+
 
 function AllClients() {
     const [clients, setClients] = useState([]);
