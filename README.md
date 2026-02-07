@@ -1,6 +1,6 @@
-BuildMate Dashboard Panel
+Ai-Construction Admin Dashboard Panel
 
-The BuildMate Dashboard Panel is the administrative and management interface of the BuildMate platform. It enables system admins and verified managers to oversee user activity, handle verifications, resolve disputes, and analyze platform performance. The dashboard acts as the control center of the entire BuildMate ecosystem.
+The Admin Dashboard Panel is the administrative and management interface of the BuildMate platform. It enables system admins and verified managers to oversee user activity, handle verifications, resolve disputes, and analyze platform performance. The dashboard acts as the control center of the entire BuildMate ecosystem.
 
 🧩 Purpose of the Dashboard
 
