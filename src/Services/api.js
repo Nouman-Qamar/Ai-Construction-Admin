@@ -11,11 +11,11 @@ const api = axios.create({
 
 api.interceptors.request.use(
     (config) => {
-        // Example: Attach token
-        // const token = localStorage.getItem('token');
-        // if (token) {
-        //     config.headers.Authorization = `Bearer ${token}`;
-        // }
+        // Attach authentication token
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
     },
     (error) => Promise.reject(error)
