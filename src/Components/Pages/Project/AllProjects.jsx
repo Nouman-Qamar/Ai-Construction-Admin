@@ -1,450 +1,433 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Select, Tag, message, Spin, Space, DatePicker } from "antd";
-import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import axiosInstance from "../../../api/axiosInstance";
-import moment from "moment";
+import { Eye, CheckCircle, XCircle, Calendar, DollarSign, Plus } from "lucide-react";
+import { message } from "antd";
+import BidReviewModal from "./Bids overview/BidReviewModal";
+import CancelReviewModal from "./Cancel projects/CancelReviewModal";
+import Activeproject from "./active project/active";
+import PendingApproval from "./pendingapproval";
+import CompleteProject from "./completeproject";
+import projectService from "../Services/projectService";
+import bidService from "../Services/bidService";
+import "./AllProjects.css";
 
-const { Option } = Select;
-const { TextArea } = Input;
-
-const AllProjects = () => {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
-  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [projectToDelete, setProjectToDelete] = useState(null);
-  const [form] = Form.useForm();
+export default function AllProjects({ onProjectAdded }) {
+  const [activeTab, setActiveTab] = useState("bids");
+  const [bids, setBids] = useState([]);
+  const [cancelProjects, setCancelProjects] = useState([]);
+  const [activeProjects, setActiveProjects] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectedItems, setSelectedItems] = useState(new Set());
   const [searchText, setSearchText] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
+  const [loading, setLoading] = useState(false);
+
+  // Fetch data from backend
+  useEffect(() => {
+    if (activeTab === "bids") {
+      fetchBids();
+    } else if (activeTab === "active") {
+      fetchActiveProjects();
+    } else if (activeTab === "cancel") {
+      fetchCancelledProjects();
+    }
+  }, [activeTab]);
+
+  const fetchBids = async () => {
+    setLoading(true);
+    try {
+      const response = await bidService.getAllBids();
+      const formattedBids = response.data.map(bid => ({
+        id: bid._id,
+        name: bid.contractorId.name || "Unknown Contractor",
+        project: bid.projectId.title || "Unknown Project",
+        bid: `$${bid.amount.toLocaleString()}`,
+        bidAmount: bid.amount || 0,
+        timeline: bid.timeline || "N/A",
+        status: bid.status || "Pending"
+      }));
+      setBids(formattedBids);
+    } catch (error) {
+      console.error("Error fetching bids:", error);
+      message.error("Failed to fetch bids");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchActiveProjects = async () => {
+    setLoading(true);
+    try {
+      const response = await projectService.getActiveProjects();
+      const formattedProjects = response.data.map(project => ({
+        id: project._id,
+        name: project.clientId?.name || project.clientId?.company || "Unknown Client",
+        project: project.title,
+        bid: `$${project.budget?.toLocaleString() || 0}`,
+        timeline: project.timeline || "N/A",
+        status: project.status,
+        progress: project.progress || 0
+      }));
+      setActiveProjects(formattedProjects);
+    } catch (error) {
+      console.error("Error fetching active projects:", error);
+      message.error("Failed to fetch active projects");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCancelledProjects = async () => {
+    setLoading(true);
+    try {
+      const response = await projectService.getAllProjects({ status: "Cancelled" });
+      const formattedProjects = response.data.map(project => ({
+        id: project._id,
+        name: project.clientId?.name || project.clientId?.company || "Unknown Client",
+        project: project.title,
+        bid: `$${project.budget?.toLocaleString() || 0}`,
+        timeline: project.timeline || "N/A",
+        status: "Cancelled",
+        reason: project.cancellationReason || "No reason provided",
+        requestDate: project.cancelledAt ? new Date(project.cancelledAt).toISOString().split("T")[0] : "N/A"
+      }));
+      setCancelProjects(formattedProjects);
+    } catch (error) {
+      console.error("Error fetching cancelled projects:", error);
+      message.error("Failed to fetch cancelled projects");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateActive = (updated) => {
+    setActiveProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setIsModalOpen(false);
+    setSelectedItem(null);
+  };
+
+  const handleSelectAll = (event) => {
+    const checked = event.target.checked;
+    setSelectAll(checked);
+
+    if (checked) {
+      const newSet = new Set();
+      for (let item of filteredItems) {
+        newSet.add(item.id);
+      }
+      setSelectedItems(newSet);
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleSelectItem = (id) => {
+    const copy = new Set(selectedItems);
+    if (copy.has(id)) copy.delete(id);
+    else copy.add(id);
+    setSelectedItems(copy);
+    setSelectAll(copy.size === filteredItems.length);
+  };
+
+  const handleReview = (item) => {
+    setSelectedItem(item);
+    setIsModalOpen(true);
+  };
+
+  const handleAccept = async (id) => {
+    if (activeTab === "bids") {
+      try {
+        await bidService.acceptBid(id, "admin"); // Replace with actual admin ID
+        message.success("Bid accepted successfully");
+        fetchBids(); // Refresh data
+      } catch (error) {
+        console.error("Error accepting bid:", error);
+        message.error("Failed to accept bid");
+      }
+    }
+  };
+
+  const handleReject = async (id) => {
+    if (activeTab === "bids") {
+      try {
+        await bidService.rejectBid(id, "admin"); // Replace with actual admin ID
+        message.success("Bid rejected successfully");
+        fetchBids(); // Refresh data
+      } catch (error) {
+        console.error("Error rejecting bid:", error);
+        message.error("Failed to reject bid");
+      }
+    }
+  };
+
+  const handleAddNewProject = () => {
+    // This should open a form modal to create new project
+    message.info("Add new project form - to be implemented");
+    if (onProjectAdded) onProjectAdded();
+  };
+
+  let currentData = activeTab === "bids" ? bids : activeTab === "cancel" ? cancelProjects : [];
+
+  const filteredItems = currentData.filter(item => {
+    return item.name.toLowerCase().includes(searchText.toLowerCase()) ||
+           item.project.toLowerCase().includes(searchText.toLowerCase());
   });
 
-  useEffect(() => {
-    fetchProjects();
-  }, [pagination.current, pagination.pageSize, searchText, filterStatus]);
-
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      const params = {
-        page: pagination.current,
-        limit: pagination.pageSize,
-      };
-
-      if (searchText) {
-        params.search = searchText;
-      }
-
-      // Use appropriate endpoint based on filter
-      let endpoint = '/projects';
-      if (filterStatus === 'active') endpoint = '/projects/active';
-      else if (filterStatus === 'completed') endpoint = '/projects/completed';
-      else if (filterStatus === 'pending') endpoint = '/projects/pending';
-
-      const response = await axiosInstance.get(endpoint, { params });
-      console.log('Projects response:', response);
-
-      if (response.data || response) {
-        const data = response.data || response;
-        setProjects(Array.isArray(data) ? data : []);
-        setPagination({
-          ...pagination,
-          total: response.total || (Array.isArray(data) ? data.length : 0),
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      message.error('Failed to load projects');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTableChange = (newPagination) => {
-    setPagination({
-      current: newPagination.current,
-      pageSize: newPagination.pageSize,
-      total: pagination.total,
-    });
-  };
-
-  const showViewModal = (project) => {
-    setSelectedProject(project);
-    setIsViewModalVisible(true);
-  };
-
-  const showEditModal = (project) => {
-    setSelectedProject(project);
-    form.setFieldsValue({
-      title: project.title,
-      description: project.description,
-      location: project.location,
-      budget: project.budget,
-      status: project.status,
-      deadline: project.deadline ? moment(project.deadline) : null,
-    });
-    setIsModalVisible(true);
-  };
-
-  const showDeleteModal = (project) => {
-    setProjectToDelete(project);
-    setIsDeleteModalVisible(true);
-  };
-
-  const handleOk = async () => {
-  try {
-    const values = await form.validateFields();
-    setLoading(true);
-
-    const projectData = {
-      ...values,
-      budget: Number(values.budget), // important
-      deadline: values.deadline ? values.deadline.toISOString() : null,
-      client: localStorage.getItem("userId"), // OR from auth context
-    };
-
-    if (selectedProject) {
-      await axiosInstance.put(
-        `/projects/${selectedProject._id}`,
-        projectData
-      );
-      message.success("Project updated successfully");
-    } else {
-      await axiosInstance.post("/projects", projectData);
-      message.success("Project created successfully");
-    }
-
-    setIsModalVisible(false);
-    form.resetFields();
-    setSelectedProject(null);
-    fetchProjects();
-
-  } catch (error) {
-  console.log("FULL ERROR:", error);
-  console.log("RESPONSE:", error.response?.data);
-  message.error(error.response?.data?.message || "Failed to save project");
-}
-
-};
-
-
-  const confirmDelete = async () => {
-    try {
-      setLoading(true);
-      await axiosInstance.delete(`/projects/${projectToDelete._id}`);
-      message.success('Project deleted successfully');
-      
-      setIsDeleteModalVisible(false);
-      setProjectToDelete(null);
-      fetchProjects();
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      message.error('Failed to delete project');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (projectId, newStatus) => {
-    try {
-      setLoading(true);
-      await axiosInstance.patch(`/projects/${projectId}/status`, { status: newStatus });
-      message.success('Project status updated');
-      fetchProjects();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      message.error('Failed to update status');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    setIsViewModalVisible(false);
-    setIsDeleteModalVisible(false);
-    form.resetFields();
-    setSelectedProject(null);
-    setProjectToDelete(null);
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      pending: "orange",
-      active: "blue",
-      completed: "green",
-      cancelled: "red",
-    };
-    return colors[status?.toLowerCase()] || "default";
-  };
-
-  const columns = [
-    {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
-      sorter: true,
-    },
-    {
-      title: "Client",
-      dataIndex: ["client", "name"],
-      key: "client",
-      render: (text, record) => record.client?.name || 'N/A',
-    },
-    {
-      title: "Location",
-      dataIndex: "location",
-      key: "location",
-      render: (text) => text || 'N/A',
-    },
-    {
-      title: "Budget",
-      dataIndex: "budget",
-      key: "budget",
-      render: (budget) => budget ? `$${budget.toLocaleString()}` : 'N/A',
-      sorter: (a, b) => (a.budget || 0) - (b.budget || 0),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status, record) => (
-        <Select
-          value={status}
-          onChange={(value) => handleStatusChange(record._id, value)}
-          style={{ width: 120 }}
-        >
-          <Option value="pending">
-            <Tag color="orange">Pending</Tag>
-          </Option>
-          <Option value="active">
-            <Tag color="blue">Active</Tag>
-          </Option>
-          <Option value="completed">
-            <Tag color="green">Completed</Tag>
-          </Option>
-          <Option value="cancelled">
-            <Tag color="red">Cancelled</Tag>
-          </Option>
-        </Select>
-      ),
-    },
-    {
-      title: "Deadline",
-      dataIndex: "deadline",
-      key: "deadline",
-      render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A',
-      sorter: (a, b) => new Date(a.deadline || 0) - new Date(b.deadline || 0),
-    },
-    {
-      title: "Created",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (date) => new Date(date).toLocaleDateString(),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            icon={<EyeOutlined />}
-            onClick={() => showViewModal(record)}
-          >
-            View
-          </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => showEditModal(record)}
-          >
-            Edit
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => showDeleteModal(record)}
-          >
-            Delete
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
   return (
-    <div style={{ padding: "24px" }}>
-      <div style={{ marginBottom: "20px" }}>
-        <h2>All Projects</h2>
-        <p>Manage and view all construction projects</p>
+    <div className="all-projects-wrapper">
+      <div className="all-projects-header">
+        <h2 className="all-projects-title">All Projects</h2>
+        <button
+          onClick={handleAddNewProject}
+          style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 8, 
+            padding: "10px 16px", 
+            backgroundColor: "#f97316", 
+            color: "#fff", 
+            border: "none", 
+            borderRadius: 6, 
+            cursor: "pointer", 
+            fontSize: 14, 
+            fontWeight: 600 
+          }}
+        >
+          <Plus size={18} /> Add New
+        </button>
       </div>
 
-      <div style={{ marginBottom: "16px", display: "flex", gap: "16px" }}>
-        <Input
-          prefix={<SearchOutlined />}
-          placeholder="Search projects..."
+      <div className="projects-tabs">
+        <button
+          className={`projects-tab ${activeTab === "bids" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("bids");
+            setSearchText("");
+            setSelectedItems(new Set());
+            setSelectAll(false);
+          }}
+        >
+          <CheckCircle size={18} /> Bids Overview
+        </button>
+        <button
+          className={`projects-tab ${activeTab === "active" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("active");
+            setSearchText("");
+            setSelectedItems(new Set());
+            setSelectAll(false);
+          }}
+        >
+          <CheckCircle size={18} /> Active Projects
+        </button>
+        <button
+          className={`projects-tab ${activeTab === "cancel" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("cancel");
+            setSearchText("");
+            setSelectedItems(new Set());
+            setSelectAll(false);
+          }}
+        >
+          <CheckCircle size={18} /> Canceled Projects
+        </button>
+        <button
+          className={`projects-tab ${activeTab === "pending" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("pending");
+            setSearchText("");
+            setSelectedItems(new Set());
+            setSelectAll(false);
+          }}
+        >
+          <CheckCircle size={18} /> Pending Approvals
+        </button>
+        <button
+          className={`projects-tab ${activeTab === "complete" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("complete");
+            setSearchText("");
+            setSelectedItems(new Set());
+            setSelectAll(false);
+          }}
+        >
+          <CheckCircle size={18} /> Complete Projects
+        </button>
+      </div>
+
+      <div className="projects-search-section">
+        <input 
+          type="text"
+          placeholder="Search by contractor name or project..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          style={{ width: "300px" }}
+          className="projects-search-input"
         />
-        
-        <Select
-          value={filterStatus}
-          onChange={setFilterStatus}
-          style={{ width: 150 }}
-        >
-          <Option value="all">All Projects</Option>
-          <Option value="pending">Pending</Option>
-          <Option value="active">Active</Option>
-          <Option value="completed">Completed</Option>
-        </Select>
-
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            form.resetFields();
-            setSelectedProject(null);
-            setIsModalVisible(true);
-          }}
-        >
-          Add New Project
-        </Button>
       </div>
 
-      <Spin spinning={loading}>
-        <Table
-          columns={columns}
-          dataSource={projects}
-          rowKey={(record) => record._id}
-          pagination={{
-            ...pagination,
-            showSizeChanger: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} projects`,
-          }}
-          onChange={handleTableChange}
+      <div className="projects-content">
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>
+        ) : activeTab === "bids" || activeTab === "cancel" ? (
+          <>
+            <label className="projects-select-all">
+              <input
+                type="checkbox"
+                checked={selectAll}
+                onChange={handleSelectAll}
+                className="projects-checkbox"
+              />
+              <span>Select all {filteredItems.length}</span>
+            </label>
+            {filteredItems.length === 0 ? (
+              <div className="projects-empty-state">
+                <p>No results found</p>
+              </div>
+            ) : (
+              filteredItems.map((item) => (
+                <div key={item.id} className="projects-card">
+                  <div className="projects-card-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(item.id)}
+                      onChange={() => handleSelectItem(item.id)}
+                      className="projects-checkbox"
+                    />
+                    <div className="projects-avatar">{item.name.charAt(0)}</div>
+                    <div className="projects-details">
+                      <h3 className="projects-name">{item.name}</h3>
+                      <p className="projects-project">{item.project}</p>
+                      <div className="projects-info">
+                        <div className="projects-info-item">
+                          <DollarSign size={18} />
+                          <span>{item.bid}</span>
+                        </div>
+                        <div className="projects-info-item">
+                          <Calendar size={18} />
+                          <span>{item.timeline}</span>
+                        </div>
+                        <span className={`projects-status projects-status-${item.status?.toLowerCase().replace(/\s/g, "-")}`}>
+                          {item.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="projects-action">
+                    <button
+                      className="projects-btn projects-btn-review"
+                      onClick={() => handleReview(item)}
+                    >
+                      <Eye size={18} /> Review
+                    </button>
+                    {activeTab === "bids" ? (
+                      <>
+                        <button
+                          className="projects-btn projects-btn-accept"
+                          onClick={() => handleAccept(item.id)}
+                        >
+                          <CheckCircle size={18} /> Accept
+                        </button>
+                        <button
+                          className="projects-btn projects-btn-reject"
+                          onClick={() => handleReject(item.id)}
+                        >
+                          <XCircle size={18} /> Reject
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            )}
+          </>
+        ) : activeTab === "active" ? (
+          (() => {
+            const filteredActive = activeProjects.filter(
+              (item) =>
+                item.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+                item.project?.toLowerCase().includes(searchText.toLowerCase())
+            );
+            return filteredActive.length === 0 ? (
+              <div className="projects-empty-state">
+                <p>No active projects found</p>
+              </div>
+            ) : (
+              filteredActive.map((item) => (
+                <div key={item.id} className="projects-card">
+                  <div className="projects-card-left">
+                    <div className="projects-avatar">{item.name.charAt(0)}</div>
+                    <div className="projects-details">
+                      <h3 className="projects-name">{item.name}</h3>
+                      <p className="projects-project">{item.project}</p>
+                      <div className="projects-info">
+                        <div className="projects-info-item">
+                          <DollarSign size={18} />
+                          <span>{item.bid}</span>
+                        </div>
+                        <div className="projects-info-item">
+                          <Calendar size={18} />
+                          <span>{item.timeline}</span>
+                        </div>
+                        <span
+                          className={`projects-status projects-status-${item.status
+                            ?.toLowerCase()
+                            .replace(/ /g, "-")}`}
+                        >
+                          {item.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="projects-actions">
+                    <button
+                      className="projects-btn projects-btn-review"
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <Eye size={18} /> Review
+                    </button>
+                    <button className="projects-btn projects-btn-accept" disabled>
+                      <CheckCircle size={18} /> Action
+                    </button>
+                  </div>
+                </div>
+              ))
+            );
+          })()
+        ) : activeTab === "pending" ? (
+          <PendingApproval />
+        ) : activeTab === "complete" ? (
+          <CompleteProject />
+        ) : null}
+      </div>
+
+      {activeTab === "bids" && (
+        <BidReviewModal
+          isOpen={isModalOpen}
+          bid={selectedItem}
+          onClose={() => setIsModalOpen(false)}
         />
-      </Spin>
-
-      {/* Add/Edit Project Modal */}
-      <Modal
-        title={selectedProject ? "Edit Project" : "Add New Project"}
-        open={isModalVisible}
-        onOk={handleOk}
-        onCancel={handleCancel}
-        confirmLoading={loading}
-        width={700}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="title"
-            label="Project Title"
-            rules={[{ required: true, message: "Please enter project title" }]}
-          >
-            <Input placeholder="Enter project title" />
-          </Form.Item>
-
-          <Form.Item
-            name="description"
-            label="Description"
-            rules={[{ required: true, message: "Please enter description" }]}
-          >
-            <TextArea rows={4} placeholder="Enter project description" />
-          </Form.Item>
-
-          <Form.Item
-            name="location"
-            label="Location"
-          >
-            <Input placeholder="Enter project location" />
-          </Form.Item>
-
-          <Form.Item
-            name="budget"
-            label="Budget"
-            rules={[{ required: true, message: "Please enter budget" }]}
-          >
-            <Input type="number" prefix="$" placeholder="Enter budget" />
-          </Form.Item>
-
-          <Form.Item
-            name="status"
-            label="Status"
-            rules={[{ required: true, message: "Please select status" }]}
-          >
-            <Select placeholder="Select status">
-              <Option value="pending">Pending</Option>
-              <Option value="active">Active</Option>
-              <Option value="completed">Completed</Option>
-              <Option value="cancelled">Cancelled</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="deadline"
-            label="Deadline"
-          >
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* View Project Modal */}
-      <Modal
-        title="Project Details"
-        open={isViewModalVisible}
-        onCancel={handleCancel}
-        footer={[
-          <Button key="close" onClick={handleCancel}>
-            Close
-          </Button>,
-        ]}
-        width={700}
-      >
-        {selectedProject && (
-          <div>
-            <p><strong>Title:</strong> {selectedProject.title}</p>
-            <p><strong>Description:</strong> {selectedProject.description}</p>
-            <p><strong>Client:</strong> {selectedProject.client?.name || 'N/A'}</p>
-            <p><strong>Location:</strong> {selectedProject.location || 'N/A'}</p>
-            <p><strong>Budget:</strong> ${selectedProject.budget?.toLocaleString() || 'N/A'}</p>
-            <p>
-              <strong>Status:</strong>{" "}
-              <Tag color={getStatusColor(selectedProject.status)}>
-                {selectedProject.status?.toUpperCase()}
-              </Tag>
-            </p>
-            <p><strong>Deadline:</strong> {selectedProject.deadline ? new Date(selectedProject.deadline).toLocaleDateString() : 'N/A'}</p>
-            <p><strong>Created:</strong> {new Date(selectedProject.createdAt).toLocaleDateString()}</p>
-          </div>
-        )}
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        title="Delete Project"
-        open={isDeleteModalVisible}
-        onOk={confirmDelete}
-        onCancel={handleCancel}
-        okText="Delete"
-        okButtonProps={{ danger: true }}
-        confirmLoading={loading}
-      >
-        <p>
-          Are you sure you want to delete <strong>{projectToDelete?.title}</strong>?
-          This action cannot be undone.
-        </p>
-      </Modal>
+      )}
+      {activeTab === "cancel" && (
+        <CancelReviewModal
+          isOpen={isModalOpen}
+          project={selectedItem}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
+      {activeTab === "active" && (
+        <Activeproject
+          isOpen={isModalOpen}
+          project={selectedItem}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedItem(null);
+          }}
+          onUpdate={handleUpdateActive}
+        />
+      )}
     </div>
   );
-};
-
-export default AllProjects;
+}
