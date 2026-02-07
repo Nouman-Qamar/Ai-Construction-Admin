@@ -18,7 +18,7 @@ import Login from "./Components/Auth/Login";
 import ProtectedRoute from "./Components/Auth/ProtectedRoute";
 
 import { Routes, Route, Navigate } from "react-router-dom";
-import Activeproject from "./Components/Pages/Project/active project/active";
+import Activeproject from "./Components/Pages/Project/activeProject/active";
 
 const { Header, Sider, Content } = Layout;
 

@@ -15,7 +15,7 @@ import {
   LogoutOutlined,
   CameraOutlined,
 } from "@ant-design/icons";
-import authService from "../Services/authService";
+import authService from "../../../Services/authService";
 import "./profile.css";
 
 export function Profile() {
